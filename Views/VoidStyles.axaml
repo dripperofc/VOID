@@ -1,0 +1,86 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
+    <Styles.Resources>
+        <Color x:Key="VoidBgMain">#313338</Color>
+        <Color x:Key="VoidBgSide">#2B2D31</Color>
+        <Color x:Key="VoidBgServers">#1E1F22</Color>
+        <Color x:Key="VoidBgChat">#313338</Color>
+        <Color x:Key="VoidBgInput">#383A40</Color>
+        <Color x:Key="VoidBrand">#5865F2</Color>
+        <Color x:Key="VoidSuccess">#23A559</Color>
+        <Color x:Key="VoidDanger">#DA373C</Color>
+        <Color x:Key="VoidTextMain">#F2F3F5</Color>
+        <Color x:Key="VoidTextSide">#949BA4</Color>
+    </Styles.Resources>
+
+    <Style Selector="Button.VoidBtn">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource VoidTextSide}"/>
+        <Setter Property="Padding" Value="8,4"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                <BrushTransition Property="Foreground" Duration="0:0:0.15"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.VoidBtn /template/ ContentPresenter">
+        <Setter Property="TextBlock.Foreground" Value="{Binding $parent[Button].Foreground}"/>
+    </Style>
+    <Style Selector="Button.VoidBtn:pointerover">
+        <Setter Property="Background" Value="#35373C"/>
+        <Setter Property="Foreground" Value="{DynamicResource VoidTextMain}"/>
+    </Style>
+
+    <Style Selector="Button.VoidIconBtn">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.VoidIconBtn:pointerover">
+        <Setter Property="RenderTransform" Value="scale(1.1)"/>
+    </Style>
+    <Style Selector="Button.VoidIconBtn:pressed">
+        <Setter Property="RenderTransform" Value="scale(0.95)"/>
+    </Style>
+
+    <Style Selector="ListBox.VoidList ListBoxItem">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Margin" Value="0,1"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="ListBox.VoidList ListBoxItem:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#35373C"/>
+    </Style>
+    <Style Selector="ListBox.VoidList ListBoxItem:selected /template/ ContentPresenter">
+        <Setter Property="Background" Value="#3F4147"/>
+    </Style>
+
+    <Style Selector="Button.VoidServerBtn">
+        <Setter Property="Background" Value="#313338"/>
+        <Setter Property="CornerRadius" Value="24"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <CornerRadiusTransition Property="CornerRadius" Duration="0:0:0.2"/>
+                <BrushTransition Property="Background" Duration="0:0:0.2"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.VoidServerBtn:pointerover">
+        <Setter Property="CornerRadius" Value="16"/>
+        <Setter Property="Background" Value="#5865F2"/>
+    </Style>
+
+</Styles>

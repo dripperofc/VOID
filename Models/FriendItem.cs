@@ -2,8 +2,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Void.Models;
 
-public partial class FriendItem : ObservableObject
+public class FriendItem
 {
-    [ObservableProperty] private string _name = "";
-    [ObservableProperty] private string _status = "Online";
+    public string Name { get; set; } = "";
+    public string Status { get; set; } = "Online";
 }

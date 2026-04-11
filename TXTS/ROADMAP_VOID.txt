@@ -1,2 +1,8 @@
 Sistema de criar conta (mais pra frente) sistema de adicionar amigos, "Nitro" do Void completamente de graça
 Habilidade de criar servers e mexer na UI pra parecer o suficiente com a do discord original.
+Notificação de mensagens podendo desativar ou ativar em qualquer hora
+Poder personalizar o perfil mais que já dá pra personalizar
+Solicitações de mensagem, poder marcar alguém no discord, fazer calls usando o microfone, ligar camera, compartilhar tela e etc
+Deixar ele mais leve que o discord (em todos os dispositivos)
+mais otimizado
+poder apagar os servers que criou (com um aviso antes de apagar)

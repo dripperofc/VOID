@@ -1,105 +1,118 @@
 using System;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Text.Json;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Avalonia.Threading;
 using Void.Models; 
+using Void.Services;
 
 namespace Void.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
-    [ObservableProperty] private string _input = "";
-    [ObservableProperty] private string _currentChatName = "Amigo Exemplo";
-    [ObservableProperty] private string _newServerName = "";
-    
-    [ObservableProperty] private bool _isCreatingServer = false;
-    [ObservableProperty] private bool _isInServer = false;
+    [ObservableProperty] private bool _isLoggedIn = false;
+    [ObservableProperty] private bool _isRegisterView = false;
+    [ObservableProperty] private bool _showWelcomePopup = false;
     [ObservableProperty] private bool _isShowingFriends = true;
-    [ObservableProperty] private bool _showProfileSettings = false;
-    [ObservableProperty] private bool _showDeleteWarning = false;
-    [ObservableProperty] private bool _notificationsEnabled = true;
+    [ObservableProperty] private bool _isInServer = false;
+    [ObservableProperty] private string _usernameInput = "";
+    [ObservableProperty] private string _nicknameInput = "";
+    [ObservableProperty] private string _passwordInput = "";
+    [ObservableProperty] private string _welcomeMessage = "";
+    [ObservableProperty] private string _input = "";
+    [ObservableProperty] private string _currentChatName = "Amigos";
 
-    private ServerItem? _serverToHeader;
     public UserProfile CurrentUser { get; } = new();
+    private readonly ChatService _chatService = new(); 
+    private readonly string _accountsFolder = "Accounts";
+    private readonly string _idFilePath = "last_id.txt";
 
     public ObservableCollection<MessageItem> ChatMessages { get; } = new();
-    public ObservableCollection<FriendItem> Friends { get; } = new();
+    public ObservableCollection<FriendItem> Friends { get; } = new(); 
     public ObservableCollection<ServerItem> Servers { get; } = new();
-    public ObservableCollection<string> CurrentChannels { get; } = new();
 
     public MainViewModel()
     {
-        Friends.Add(new FriendItem { Name = "Amigo Exemplo", Status = "Disponível" });
-        var voidServer = new ServerItem { Name = "Void" };
-        voidServer.Channels.Add("geral");
-        voidServer.Channels.Add("comandos");
-        Servers.Add(voidServer);
+        if (!Directory.Exists(_accountsFolder)) Directory.CreateDirectory(_accountsFolder);
+        if (!File.Exists(_idFilePath)) File.WriteAllText(_idFilePath, "1");
+
+        _chatService.OnMessageReceived += (user, message, color, badge) => {
+            Dispatcher.UIThread.Post(() => {
+                // Aqui o C# usa as propriedades "Pai" geradas pelo seu [ObservableProperty]
+                ChatMessages.Add(new MessageItem { 
+                    Author = user, 
+                    Content = message, 
+                    NameColor = color, 
+                    Badge = badge 
+                    // O Timestamp já inicia com DateTime.Now no seu Model!
+                });
+            });
+        };
     }
 
-    // --- COMANDOS DO ROADMAP (CALLS E NOTIFICAÇÕES) ---
-    [RelayCommand] public void ToggleNotifications() => NotificationsEnabled = !NotificationsEnabled;
+    private int GetNextUserId(string username)
+    {
+        if (username.ToLower() == "admin" || username.ToLower() == "dono") return 1;
+        int lastId = 1;
+        if (File.Exists(_idFilePath)) int.TryParse(File.ReadAllText(_idFilePath), out lastId);
+        int nextId = lastId + 1;
+        File.WriteAllText(_idFilePath, nextId.ToString());
+        return nextId;
+    }
+
+    [RelayCommand]
+    public void ConfirmRegister()
+    {
+        if (string.IsNullOrWhiteSpace(UsernameInput) || string.IsNullOrWhiteSpace(PasswordInput)) return;
+        string path = Path.Combine(_accountsFolder, $"{UsernameInput.ToLower()}.json");
+        if (File.Exists(path)) { TriggerWelcomePopup("Usuário já existe!"); return; }
+
+        string finalNick = string.IsNullOrWhiteSpace(NicknameInput) ? UsernameInput : NicknameInput;
+        int idNovo = GetNextUserId(UsernameInput);
+
+        var newUser = new UserSettings {
+            Nickname = finalNick, Username = UsernameInput.ToLower(), Password = PasswordInput,
+            UserId = idNovo, Badge = (idNovo == 1) ? "👑" : ""
+        };
+
+        File.WriteAllText(path, JsonSerializer.Serialize(newUser));
+        TriggerWelcomePopup("Conta Criada!");
+        IsRegisterView = false;
+    }
+
+    [RelayCommand]
+    public void ConfirmLogin()
+    {
+        string path = Path.Combine(_accountsFolder, $"{UsernameInput.ToLower()}.json");
+        if (!File.Exists(path)) { TriggerWelcomePopup("Não encontrado!"); return; }
+
+        var saved = JsonSerializer.Deserialize<UserSettings>(File.ReadAllText(path));
+        if (saved?.Password == PasswordInput) {
+            CurrentUser.Nickname = saved.Nickname;
+            CurrentUser.Username = saved.Username;
+            CurrentUser.UserId = saved.UserId;
+            CurrentUser.Badge = saved.Badge;
+            IsLoggedIn = true;
+            _ = _chatService.ConnectAsync();
+        } else { TriggerWelcomePopup("Senha errada!"); }
+    }
+
+    [RelayCommand] public void ToggleView() => IsRegisterView = !IsRegisterView;
+    [RelayCommand] public void GoToDms() { IsInServer = false; IsShowingFriends = true; CurrentChatName = "Amigos"; }
     
     [RelayCommand] 
-    public void StartVoiceCall() 
-    {
-        // Aqui vai entrar a lógica da Tela de Call de Voz no futuro!
-        ChatMessages.Add(new MessageItem { Author = "Sistema", Content = "📞 Iniciando chamada de voz..." });
+    public void ProcessMessage() {
+        if(string.IsNullOrWhiteSpace(Input)) return;
+        _ = _chatService.SendMessageAsync(CurrentUser.Nickname, Input, CurrentUser.Color, CurrentUser.Badge);
+        Input = "";
     }
 
-    [RelayCommand] 
-    public void StartVideoCall() 
-    {
-        // Aqui vai entrar a lógica da Tela de Call de Vídeo!
-        ChatMessages.Add(new MessageItem { Author = "Sistema", Content = "📹 Iniciando chamada de vídeo..." });
-    }
-
-    // --- COMANDOS DE INTERFACE ---
-    [RelayCommand] public void OpenProfileSettings() => ShowProfileSettings = true;
-    [RelayCommand] public void CloseProfileSettings() => ShowProfileSettings = false;
-    [RelayCommand] public void CancelDelete() => ShowDeleteWarning = false;
-    [RelayCommand] public void ToggleCreateServer() => IsCreatingServer = !IsCreatingServer;
-
-    [RelayCommand]
-    public void RequestDeleteServer(ServerItem server) { _serverToHeader = server; ShowDeleteWarning = true; }
-
-    [RelayCommand]
-    public void ConfirmDeleteServer() { if (_serverToHeader != null) { Servers.Remove(_serverToHeader); GoToDms(); } ShowDeleteWarning = false; }
-
-    [RelayCommand]
-    public void SelectServer(ServerItem s) 
-    { 
-        IsInServer = true; IsShowingFriends = false; CurrentChannels.Clear(); 
-        foreach(var c in s.Channels) CurrentChannels.Add(c); 
-        CurrentChatName = s.Channels[0]; // Tirei o "#" daqui, o XAML cuida disso agora
-    }
-
-    [RelayCommand] 
-    public void GoToDms() 
-    { 
-        IsInServer = false; IsShowingFriends = true; CurrentChatName = "Amigo Exemplo"; 
-    }
-
-    [RelayCommand] 
-    public void ConfirmCreateServer() 
-    { 
-        if(!string.IsNullOrWhiteSpace(NewServerName)){ 
-            var s = new ServerItem { Name = NewServerName }; 
-            s.Channels.Add("geral"); Servers.Add(s); NewServerName = ""; IsCreatingServer = false; 
-        } 
-    }
-
-    [RelayCommand] 
-    public void ProcessMessage() 
-    { 
-        if(string.IsNullOrWhiteSpace(Input)) return; 
-        var msg = new MessageItem { Author = CurrentUser.Name, Content = Input, NameColor = CurrentUser.Color, Badge = CurrentUser.Badge }; 
-        Dispatcher.UIThread.Post(() => { ChatMessages.Add(msg); Input = ""; }); 
-    }
-
-    [RelayCommand] 
-    public void SelectFriend(FriendItem friend) 
-    { 
-        IsInServer = false; IsShowingFriends = true; CurrentChatName = friend.Name; ChatMessages.Clear(); 
+    private async void TriggerWelcomePopup(string msg) {
+        WelcomeMessage = msg; ShowWelcomePopup = true;
+        await Task.Delay(3000); ShowWelcomePopup = false;
     }
 }
