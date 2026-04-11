@@ -2,85 +2,88 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     
     <Styles.Resources>
-        <Color x:Key="VoidBgMain">#313338</Color>
-        <Color x:Key="VoidBgSide">#2B2D31</Color>
-        <Color x:Key="VoidBgServers">#1E1F22</Color>
-        <Color x:Key="VoidBgChat">#313338</Color>
-        <Color x:Key="VoidBgInput">#383A40</Color>
-        <Color x:Key="VoidBrand">#5865F2</Color>
-        <Color x:Key="VoidSuccess">#23A559</Color>
-        <Color x:Key="VoidDanger">#DA373C</Color>
-        <Color x:Key="VoidTextMain">#F2F3F5</Color>
-        <Color x:Key="VoidTextSide">#949BA4</Color>
+        <Color x:Key="BgPrimary">#0A0A0A</Color>
+        <Color x:Key="BgSecondary">#121212</Color>
+        <Color x:Key="BgTertiary">#1A1A1A</Color>
+        <Color x:Key="BgQuaternary">#252525</Color>
+        <Color x:Key="VoidNeon">#00D4AA</Color>
+        <Color x:Key="VoidPurple">#8B5CF6</Color>
+        <Color x:Key="TextPrimary">#E8E8E8</Color>
+        <Color x:Key="TextSecondary">#B0B0B0</Color>
+        <Color x:Key="TextMuted">#72767D</Color>
+        <Color x:Key="BorderPrimary">#2A2A2A</Color>
     </Styles.Resources>
 
-    <Style Selector="Button.VoidBtn">
+    <Style Selector="ScrollBar">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{DynamicResource VoidTextSide}"/>
-        <Setter Property="Padding" Value="8,4"/>
-        <Setter Property="CornerRadius" Value="4"/>
-        <Setter Property="Transitions">
-            <Transitions>
-                <BrushTransition Property="Background" Duration="0:0:0.15"/>
-                <BrushTransition Property="Foreground" Duration="0:0:0.15"/>
-            </Transitions>
-        </Setter>
+        <Setter Property="Width" Value="6"/>
     </Style>
-    <Style Selector="Button.VoidBtn /template/ ContentPresenter">
-        <Setter Property="TextBlock.Foreground" Value="{Binding $parent[Button].Foreground}"/>
+    <Style Selector="ScrollBar /template/ Thumb">
+        <Setter Property="Background" Value="#404040"/>
+        <Setter Property="CornerRadius" Value="3"/>
     </Style>
-    <Style Selector="Button.VoidBtn:pointerover">
-        <Setter Property="Background" Value="#35373C"/>
-        <Setter Property="Foreground" Value="{DynamicResource VoidTextMain}"/>
+    <Style Selector="ScrollBar /template/ Thumb:pointerover">
+        <Setter Property="Background" Value="#00D4AA"/>
     </Style>
 
-    <Style Selector="Button.VoidIconBtn">
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Padding" Value="0"/>
-        <Setter Property="Transitions">
-            <Transitions>
-                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1"/>
-            </Transitions>
-        </Setter>
-    </Style>
-    <Style Selector="Button.VoidIconBtn:pointerover">
-        <Setter Property="RenderTransform" Value="scale(1.1)"/>
-    </Style>
-    <Style Selector="Button.VoidIconBtn:pressed">
-        <Setter Property="RenderTransform" Value="scale(0.95)"/>
-    </Style>
-
-    <Style Selector="ListBox.VoidList ListBoxItem">
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Padding" Value="0"/>
-        <Setter Property="Margin" Value="0,1"/>
-        <Setter Property="CornerRadius" Value="4"/>
-        <Setter Property="Transitions">
-            <Transitions>
-                <BrushTransition Property="Background" Duration="0:0:0.15"/>
-            </Transitions>
-        </Setter>
-    </Style>
-    <Style Selector="ListBox.VoidList ListBoxItem:pointerover /template/ ContentPresenter">
-        <Setter Property="Background" Value="#35373C"/>
-    </Style>
-    <Style Selector="ListBox.VoidList ListBoxItem:selected /template/ ContentPresenter">
-        <Setter Property="Background" Value="#3F4147"/>
-    </Style>
-
-    <Style Selector="Button.VoidServerBtn">
-        <Setter Property="Background" Value="#313338"/>
+    <Style Selector="Button.ServerIcon">
+        <Setter Property="Width" Value="48"/>
+        <Setter Property="Height" Value="48"/>
         <Setter Property="CornerRadius" Value="24"/>
+        <Setter Property="Background" Value="#1A1A1A"/>
+        <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
+    <Style Selector="Button.ServerIcon:pointerover">
+        <Setter Property="Background" Value="#00D4AA20"/>
+        <Setter Property="BorderBrush" Value="#00D4AA"/>
+    </Style>
+
+    <Style Selector="TextBox">
+        <Setter Property="Background" Value="#1A1A1A20"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="16,12"/>
+        <Setter Property="CornerRadius" Value="12"/>
+    </Style>
+    <Style Selector="TextBox:focus">
+        <Setter Property="Background" Value="#252525"/>
+    </Style>
+
+    <Style Selector="Button.ChannelItem">
+        <Setter Property="Padding" Value="12,8"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="CornerRadius" Value="8"/>
+    </Style>
+    <Style Selector="Button.ChannelItem:pointerover">
+        <Setter Property="Background" Value="#00D4AA15"/>
+    </Style>
+
+    <Style Selector="Button.ActionButton">
+        <Setter Property="Height" Value="44"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style Selector="Border.MessageHover">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="CornerRadius" Value="6"/>
+    </Style>
+
+    <Style Selector="Border.MessageHover:pointerover">
+        <Setter Property="Background" Value="#FFFFFF08"/>
+    </Style>
+
+    <Style Selector="StackPanel">
         <Setter Property="Transitions">
             <Transitions>
-                <CornerRadiusTransition Property="CornerRadius" Duration="0:0:0.2"/>
-                <BrushTransition Property="Background" Duration="0:0:0.2"/>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.15"/>
             </Transitions>
         </Setter>
     </Style>
-    <Style Selector="Button.VoidServerBtn:pointerover">
-        <Setter Property="CornerRadius" Value="16"/>
-        <Setter Property="Background" Value="#5865F2"/>
+
+    <Style Selector="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe UI"/>
     </Style>
 
 </Styles>

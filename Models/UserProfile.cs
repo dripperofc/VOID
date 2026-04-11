@@ -1,10 +1,12 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace Void.Models;
 
-public class UserProfile
+public partial class UserProfile : ObservableObject
 {
-    public string Nickname { get; set; } = "Novo Usuário";
-    public string Username { get; set; } = "void_user";
-    public string Color { get; set; } = "#5865F2";
-    public string Badge { get; set; } = "";
-    public int UserId { get; set; } = 0;
+    [ObservableProperty] private string _username = "";
+    [ObservableProperty] private string _nickname = "";
+    [ObservableProperty] private int _userId;
+    [ObservableProperty] private string _badge = "";
+    [ObservableProperty] private string _color = "#3498db"; // Azul padrão do Void
 }
