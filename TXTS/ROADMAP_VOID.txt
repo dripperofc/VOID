@@ -1,0 +1,2 @@
+Sistema de criar conta (mais pra frente) sistema de adicionar amigos, "Nitro" do Void completamente de graça
+Habilidade de criar servers e mexer na UI pra parecer o suficiente com a do discord original.
