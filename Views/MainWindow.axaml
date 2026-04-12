@@ -146,7 +146,7 @@
                                     <DataTemplate>
                                         <Panel Margin="0,0,0,8">
                                             <Button Classes="ServerBtn"
-                                                    Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).SelectServerCommand}"
+                                                    Command="{Binding $parent[Window].DataContext.SelectServerCommand}"
                                                     CommandParameter="{Binding}"
                                                     ToolTip.Tip="{Binding Name}">
                                                 <TextBlock Text="{Binding Name[0]}"
@@ -206,11 +206,11 @@
                             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="1" VerticalAlignment="Center">
                                 <Button Classes="IconBtn" Command="{Binding ToggleMuteCommand}"
                                         Foreground="{Binding MuteColor}" ToolTip.Tip="Microfone">
-                                    <TextBlock Text="{Binding MuteIcon}" FontSize="12"/>
+                                    <TextBlock Text="{Binding MuteIcon}" FontSize="13"/>
                                 </Button>
                                 <Button Classes="IconBtn" Command="{Binding ToggleDeafenCommand}"
                                         Foreground="{Binding DeafenColor}" ToolTip.Tip="Fones">
-                                    <TextBlock Text="{Binding DeafenIcon}" FontSize="12"/>
+                                    <TextBlock Text="{Binding DeafenIcon}" FontSize="13"/>
                                 </Button>
                                 <Button Classes="IconBtn" Command="{Binding OpenSettingsCommand}"
                                         Foreground="{StaticResource TextSecondaryBrush}" ToolTip.Tip="Configurações">
@@ -238,6 +238,7 @@
                                                    Foreground="{StaticResource TextSecondaryBrush}"/>
                                     </Button>
                                 </Grid>
+                                
 
                                 <!-- Painel adicionar amigo -->
                                 <Border Classes="SidePanel"
@@ -269,12 +270,13 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Lista de amigos -->
-                                <ItemsControl ItemsSource="{Binding Friends}" Margin="5,0,5,0">
+                                <!-- ABA: Conversas -->
+                                <ItemsControl ItemsSource="{Binding Friends}" Margin="5,0,5,0"
+                                              IsVisible="{Binding IsConversationsTab}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Button Classes="FriendBtn"
-                                                    Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).SelectFriendCommand}"
+                                                    Command="{Binding $parent[Window].DataContext.SelectFriendCommand}"
                                                     CommandParameter="{Binding}">
                                                 <Grid ColumnDefinitions="Auto,*,Auto">
                                                     <Panel Width="32" Height="32" Margin="0,0,8,0">
@@ -290,7 +292,7 @@
                                                                 HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                                                 Margin="0,0,-2,-2">
                                                             <Border Width="7" Height="7" CornerRadius="4"
-                                                                    Background="{StaticResource GreenBrush}"
+                                                                    Background="{Binding StatusColor}"
                                                                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                         </Border>
                                                     </Panel>
@@ -303,7 +305,7 @@
                                                                    Foreground="{StaticResource TextSecondaryBrush}"/>
                                                     </StackPanel>
                                                     <Button Grid.Column="2"
-                                                            Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).RemoveFriendCommand}"
+                                                            Command="{Binding $parent[Window].DataContext.RemoveFriendCommand}"
                                                             CommandParameter="{Binding}"
                                                             Classes="IconBtn" Padding="4"
                                                             Foreground="{StaticResource TextMutedBrush}"
@@ -316,7 +318,62 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
 
-                                <!-- Placeholder -->
+                                <!-- ABA: Pedidos de amizade -->
+                                <StackPanel IsVisible="{Binding IsFriendRequestsTab}" Margin="5,0,5,0">
+                                    <StackPanel IsVisible="{Binding !HasPendingRequests}"
+                                                Margin="12,16" Spacing="4">
+                                        <TextBlock Text="Nenhum pedido pendente" FontSize="13"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Text="Quando alguem te adicionar aparecera aqui"
+                                                   FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <ItemsControl ItemsSource="{Binding FriendRequests}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Padding="8,6" Margin="5,2">
+                                                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                                                        <Border Width="32" Height="32" CornerRadius="16"
+                                                                Background="{Binding AvatarColor}"
+                                                                Margin="0,0,8,0">
+                                                            <TextBlock Text="{Binding Initials}"
+                                                                       Foreground="White" FontWeight="Bold"
+                                                                       FontSize="13" HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                                                            <TextBlock Text="{Binding Name}"
+                                                                       FontSize="13" FontWeight="SemiBold"
+                                                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                            <TextBlock Text="Quer ser seu amigo"
+                                                                       FontSize="11"
+                                                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                        </StackPanel>
+                                                        <Button Grid.Column="2"
+                                                                Command="{Binding $parent[Window].DataContext.AcceptFriendRequestCommand}"
+                                                                CommandParameter="{Binding}"
+                                                                Background="{StaticResource GreenBrush}"
+                                                                Foreground="White"
+                                                                CornerRadius="6" Padding="8,4"
+                                                                FontSize="11" FontWeight="Bold"
+                                                                Margin="4,0" Content="Aceitar"/>
+                                                        <Button Grid.Column="3"
+                                                                Command="{Binding $parent[Window].DataContext.DeclineFriendRequestCommand}"
+                                                                CommandParameter="{Binding}"
+                                                                Background="{StaticResource RedBrush}"
+                                                                Foreground="White"
+                                                                CornerRadius="6" Padding="8,4"
+                                                                FontSize="11" FontWeight="Bold"
+                                                                Content="Recusar"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+
+                                <!-- Placeholder conversas -->
                                 <StackPanel Margin="12,16" Spacing="4"
                                             IsVisible="{Binding Friends.Count, Converter={x:Static ObjectConverters.IsNull}}">
                                     <TextBlock Text="Nenhuma conversa" FontSize="13" FontWeight="SemiBold"
@@ -341,7 +398,7 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Button Classes="ChannelBtn"
-                                                    Command="{Binding $parent[Window].((vm:MainViewModel)DataContext).SelectChannelCommand}"
+                                                    Command="{Binding $parent[Window].DataContext.SelectChannelCommand}"
                                                     CommandParameter="{Binding}">
                                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                                     <TextBlock Text="#" FontSize="15" FontWeight="Bold"
@@ -384,7 +441,7 @@
                                     IsVisible="{Binding IsChatOpen}"/>
                             <TextBlock Text="{Binding CurrentChatSubtitle}"
                                        IsVisible="{Binding IsChatOpen}"
-                                       FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="12" Foreground="{StaticResource AccentBrush}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
 
