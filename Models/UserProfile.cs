@@ -1,12 +1,20 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+using System;
 
 namespace Void.Models;
 
-public partial class UserProfile : ObservableObject
+public class UserProfile
 {
-    [ObservableProperty] private string _username = "";
-    [ObservableProperty] private string _nickname = "";
-    [ObservableProperty] private int _userId;
-    [ObservableProperty] private string _badge = "";
-    [ObservableProperty] private string _color = "#3498db"; // Azul padrão do Void
+    public int Id { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string Nickname { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string? Email { get; set; }
+    public string AvatarColor { get; set; } = "#5865F2";
+    public string Initials { get; set; } = "?";
+    public bool IsOnline { get; set; } = true;
+    public bool IsOwner { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime LastLogin { get; set; } = DateTime.Now;
+    
+    public string GetDisplayName() => string.IsNullOrWhiteSpace(Nickname) ? Username : Nickname;
 }

@@ -1,5 +1,6 @@
 using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 
 namespace Void.Views;
 
@@ -7,8 +8,11 @@ public partial class MainWindow : Window
 {
     public MainWindow()
     {
-        // Esta linha faz exatamente o que o InitializeComponent faria, 
-        // mas de forma explícita para evitar erros de compilação.
-        AvaloniaXamlLoader.Load(this);
+        InitializeComponent();
+    }
+    
+    private void InitializeComponent()
+    {
+        Avalonia.Markup.Xaml.AvaloniaXamlLoader.Load(this);
     }
 }
