@@ -1,89 +1,262 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    
+
     <Styles.Resources>
-        <Color x:Key="BgPrimary">#0A0A0A</Color>
-        <Color x:Key="BgSecondary">#121212</Color>
-        <Color x:Key="BgTertiary">#1A1A1A</Color>
-        <Color x:Key="BgQuaternary">#252525</Color>
-        <Color x:Key="VoidNeon">#00D4AA</Color>
-        <Color x:Key="VoidPurple">#8B5CF6</Color>
-        <Color x:Key="TextPrimary">#E8E8E8</Color>
-        <Color x:Key="TextSecondary">#B0B0B0</Color>
-        <Color x:Key="TextMuted">#72767D</Color>
-        <Color x:Key="BorderPrimary">#2A2A2A</Color>
+        <!-- Paleta escura com profundidade real -->
+        <SolidColorBrush x:Key="BgPrimaryBrush"    Color="#080810"/>
+        <SolidColorBrush x:Key="BgSecondaryBrush"  Color="#0E0E18"/>
+        <SolidColorBrush x:Key="BgTertiaryBrush"   Color="#13131F"/>
+        <SolidColorBrush x:Key="BgQuaternaryBrush" Color="#181826"/>
+        <SolidColorBrush x:Key="BgHoverBrush"      Color="#1E1E2E"/>
+        <SolidColorBrush x:Key="BgInputBrush"      Color="#161620"/>
+        <SolidColorBrush x:Key="BgCardBrush"       Color="#12121C"/>
+        <SolidColorBrush x:Key="BgPanelBrush"      Color="#0F0F1A"/>
+
+        <!-- Acentos -->
+        <SolidColorBrush x:Key="AccentBrush"       Color="#00C9A7"/>
+        <SolidColorBrush x:Key="AccentHoverBrush"  Color="#00B396"/>
+        <SolidColorBrush x:Key="AccentDimBrush"    Color="#00C9A718"/>
+        <SolidColorBrush x:Key="AccentGlowBrush"   Color="#00C9A730"/>
+        <SolidColorBrush x:Key="PurpleBrush"       Color="#7C5CBF"/>
+        <SolidColorBrush x:Key="PurpleDimBrush"    Color="#7C5CBF25"/>
+        <SolidColorBrush x:Key="RedBrush"          Color="#F04747"/>
+        <SolidColorBrush x:Key="GreenBrush"        Color="#43B581"/>
+        <SolidColorBrush x:Key="YellowBrush"       Color="#FAA61A"/>
+
+        <!-- Texto -->
+        <SolidColorBrush x:Key="TextPrimaryBrush"   Color="#E3E5E8"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#72767D"/>
+        <SolidColorBrush x:Key="TextMutedBrush"     Color="#3C3F44"/>
+        <SolidColorBrush x:Key="TextAccentBrush"    Color="#00C9A7"/>
+
+        <!-- Bordas com gradação de profundidade -->
+        <SolidColorBrush x:Key="BorderBrush"        Color="#1A1A2A"/>
+        <SolidColorBrush x:Key="BorderBrightBrush"  Color="#252535"/>
+        <SolidColorBrush x:Key="BorderAccentBrush"  Color="#00C9A740"/>
+
+        <!-- Legado -->
+        <Color x:Key="BgPrimary">#080810</Color>
+        <Color x:Key="BgSecondary">#0E0E18</Color>
+        <Color x:Key="BgTertiary">#13131F</Color>
+        <Color x:Key="BgQuaternary">#181826</Color>
+        <Color x:Key="VoidNeon">#00C9A7</Color>
+        <Color x:Key="VoidPurple">#7C5CBF</Color>
+        <Color x:Key="TextPrimary">#E3E5E8</Color>
+        <Color x:Key="TextSecondary">#72767D</Color>
+        <Color x:Key="TextMuted">#3C3F44</Color>
+        <Color x:Key="BorderPrimary">#1A1A2A</Color>
+        <SolidColorBrush x:Key="VoidNeonBrush"      Color="#00C9A7"/>
+        <SolidColorBrush x:Key="VoidPurpleBrush"    Color="#7C5CBF"/>
+        <SolidColorBrush x:Key="VoidGreenBrush"     Color="#43B581"/>
+        <SolidColorBrush x:Key="VoidRedBrush"       Color="#F04747"/>
+        <SolidColorBrush x:Key="BorderPrimaryBrush" Color="#1A1A2A"/>
+        <SolidColorBrush x:Key="TextPrimaryBrush2"  Color="#E3E5E8"/>
     </Styles.Resources>
 
+    <!-- ══ SCROLLBAR ══ -->
     <Style Selector="ScrollBar">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="Width" Value="6"/>
+        <Setter Property="Width" Value="4"/>
+        <Setter Property="Opacity" Value="0.6"/>
     </Style>
     <Style Selector="ScrollBar /template/ Thumb">
-        <Setter Property="Background" Value="#404040"/>
-        <Setter Property="CornerRadius" Value="3"/>
-    </Style>
-    <Style Selector="ScrollBar /template/ Thumb:pointerover">
-        <Setter Property="Background" Value="#00D4AA"/>
-    </Style>
-
-    <Style Selector="Button.ServerIcon">
-        <Setter Property="Width" Value="48"/>
-        <Setter Property="Height" Value="48"/>
-        <Setter Property="CornerRadius" Value="24"/>
-        <Setter Property="Background" Value="#1A1A1A"/>
-        <Setter Property="BorderThickness" Value="2"/>
-        <Setter Property="BorderBrush" Value="Transparent"/>
-    </Style>
-    <Style Selector="Button.ServerIcon:pointerover">
-        <Setter Property="Background" Value="#00D4AA20"/>
-        <Setter Property="BorderBrush" Value="#00D4AA"/>
-    </Style>
-
-    <Style Selector="TextBox">
-        <Setter Property="Background" Value="#1A1A1A20"/>
-        <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Padding" Value="16,12"/>
-        <Setter Property="CornerRadius" Value="12"/>
-    </Style>
-    <Style Selector="TextBox:focus">
-        <Setter Property="Background" Value="#252525"/>
-    </Style>
-
-    <Style Selector="Button.ChannelItem">
-        <Setter Property="Padding" Value="12,8"/>
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="CornerRadius" Value="8"/>
-    </Style>
-    <Style Selector="Button.ChannelItem:pointerover">
-        <Setter Property="Background" Value="#00D4AA15"/>
-    </Style>
-
-    <Style Selector="Button.ActionButton">
-        <Setter Property="Height" Value="44"/>
-        <Setter Property="CornerRadius" Value="10"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-    </Style>
-
-    <Style Selector="Border.MessageHover">
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="CornerRadius" Value="6"/>
-    </Style>
-
-    <Style Selector="Border.MessageHover:pointerover">
-        <Setter Property="Background" Value="#FFFFFF08"/>
-    </Style>
-
-    <Style Selector="StackPanel">
+        <Setter Property="Background" Value="#2A2A3A"/>
+        <Setter Property="CornerRadius" Value="2"/>
         <Setter Property="Transitions">
             <Transitions>
-                <DoubleTransition Property="Opacity" Duration="0:0:0.15"/>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
             </Transitions>
         </Setter>
     </Style>
+    <Style Selector="ScrollBar /template/ Thumb:pointerover">
+        <Setter Property="Background" Value="#00C9A760"/>
+    </Style>
 
+    <!-- ══ TEXTO BASE ══ -->
     <Style Selector="TextBlock">
-        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="FontFamily" Value="Segoe UI, system-ui, sans-serif"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+    </Style>
+
+    <!-- ══ TEXTBOX ══ -->
+    <Style Selector="TextBox">
+        <Setter Property="Background" Value="{StaticResource BgInputBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="CaretBrush" Value="{StaticResource AccentBrush}"/>
+        <Setter Property="SelectionBrush" Value="{StaticResource AccentDimBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="Padding" Value="14,11"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="MinHeight" Value="42"/>
+    </Style>
+    <Style Selector="TextBox /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{StaticResource BgInputBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
+                <BrushTransition Property="Background" Duration="0:0:0.2"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+        <Setter Property="BorderBrush" Value="{StaticResource BorderAccentBrush}"/>
+        <Setter Property="Background" Value="#1A1A28"/>
+    </Style>
+    <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrightBrush}"/>
+    </Style>
+
+    <!-- ══ BOTÃO SERVIDOR — círculo→quadrado com glow ══ -->
+    <Style Selector="Button.ServerBtn">
+        <Setter Property="Width" Value="46"/>
+        <Setter Property="Height" Value="46"/>
+        <Setter Property="CornerRadius" Value="23"/>
+        <Setter Property="Background" Value="{StaticResource BgQuaternaryBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <CornerRadiusTransition Property="CornerRadius" Duration="0:0:0.2" Easing="CubicEaseOut"/>
+                <BrushTransition Property="Background" Duration="0:0:0.2"/>
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.2"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.ServerBtn:pointerover">
+        <Setter Property="CornerRadius" Value="15"/>
+        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+    </Style>
+    <Style Selector="Button.ServerBtn:pressed">
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
+    </Style>
+
+    <!-- ══ BOTÃO SERVIDOR — variante "adicionar" ══ -->
+    <Style Selector="Button.ServerAddBtn">
+        <Setter Property="Width" Value="46"/>
+        <Setter Property="Height" Value="46"/>
+        <Setter Property="CornerRadius" Value="23"/>
+        <Setter Property="Background" Value="{StaticResource AccentDimBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderAccentBrush}"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <CornerRadiusTransition Property="CornerRadius" Duration="0:0:0.2" Easing="CubicEaseOut"/>
+                <BrushTransition Property="Background" Duration="0:0:0.2"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.ServerAddBtn:pointerover">
+        <Setter Property="CornerRadius" Value="15"/>
+        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+    </Style>
+
+    <!-- ══ CANAL ══ -->
+    <Style Selector="Button.ChannelBtn">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.12"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.ChannelBtn:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource BgHoverBrush}"/>
+    </Style>
+
+    <!-- ══ AMIGO ══ -->
+    <Style Selector="Button.FriendBtn">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="8,6"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.12"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.FriendBtn:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource BgHoverBrush}"/>
+    </Style>
+
+    <!-- ══ BOTÃO DE AÇÃO ══ -->
+    <Style Selector="Button.ActionBtn">
+        <Setter Property="Height" Value="44"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.ActionBtn:pointerover">
+        <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
+    </Style>
+    <Style Selector="Button.ActionBtn:pressed">
+        <Setter Property="RenderTransform" Value="scaleY(0.97)"/>
+    </Style>
+
+    <!-- ══ BOTÃO ÍCONE ══ -->
+    <Style Selector="Button.IconBtn">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="7"/>
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.12"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.IconBtn:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{StaticResource BgHoverBrush}"/>
+    </Style>
+
+    <!-- ══ LINHA DE MENSAGEM ══ -->
+    <Style Selector="Border.MsgRow">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.1"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Border.MsgRow:pointerover">
+        <Setter Property="Background" Value="#0D0D1A"/>
+    </Style>
+
+    <!-- ══ PAINEL LATERAL (add friend / create server) ══ -->
+    <Style Selector="Border.SidePanel">
+        <Setter Property="Background" Value="{StaticResource BgPanelBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderAccentBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Margin" Value="8,0,8,10"/>
+        <Setter Property="Padding" Value="14,12"/>
     </Style>
 
 </Styles>
