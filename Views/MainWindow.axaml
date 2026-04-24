@@ -45,7 +45,7 @@
                         <StackPanel IsVisible="{Binding IsRegisterView}" Spacing="6">
                             <TextBlock Text="APELIDO" FontSize="11" FontWeight="Bold"
                                        LetterSpacing="1" Foreground="{StaticResource TextSecondaryBrush}"/>
-                            <TextBox Text="{Binding Nicknameinput}" Watermark="Como quer ser chamado"/>
+                            <TextBox Text="{Binding NicknameInput}" Watermark="Como quer ser chamado"/>
                         </StackPanel>
                         <StackPanel Spacing="6">
                             <TextBlock Text="USUÁRIO" FontSize="11" FontWeight="Bold"
@@ -293,14 +293,38 @@
                                 <ItemsControl ItemsSource="{Binding PendingRequests}" Margin="5,10,5,0">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Background="#2B2D31" CornerRadius="4" Padding="8" Margin="0,0,0,4">
-                                                <Grid ColumnDefinitions="*,Auto">
-                                                    <TextBlock Text="{Binding}" Foreground="White" VerticalAlignment="Center" FontSize="12"/>
-                                                    <Button Grid.Column="1" 
-                                                            Command="{Binding DataContext.AcceptFriendCommand, ElementName=RootWindow}"
+                                            <Border Background="#2B2D31" CornerRadius="6" Padding="10,8" Margin="0,0,0,6">
+                                                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                                                    <!-- Avatar -->
+                                                    <Border Width="32" Height="32" CornerRadius="16"
+                                                            Background="{Binding AvatarColor}" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Initials}" Foreground="White"
+                                                                   FontSize="13" FontWeight="Bold"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <!-- Nome -->
+                                                    <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Nickname}" Foreground="White"
+                                                                   FontSize="13" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="Pedido de amizade" Foreground="#72767D" FontSize="11"/>
+                                                    </StackPanel>
+                                                    <!-- Aceitar -->
+                                                    <Button Grid.Column="2"
+                                                            Command="{Binding DataContext.AcceptFriendRequestCommand, ElementName=RootWindow}"
                                                             CommandParameter="{Binding}"
-                                                            Background="#3BA55C" Foreground="White" FontSize="11" Padding="8,4" CornerRadius="4" Cursor="Hand">
-                                                        <TextBlock Text="Aceitar"/>
+                                                            Background="#3BA55C" Foreground="White"
+                                                            FontSize="11" Padding="8,4" CornerRadius="4"
+                                                            Cursor="Hand" Margin="4,0">
+                                                        <TextBlock Text="✓ Aceitar"/>
+                                                    </Button>
+                                                    <!-- Recusar -->
+                                                    <Button Grid.Column="3"
+                                                            Command="{Binding DataContext.DeclineFriendRequestCommand, ElementName=RootWindow}"
+                                                            CommandParameter="{Binding}"
+                                                            Background="#ED4245" Foreground="White"
+                                                            FontSize="11" Padding="8,4" CornerRadius="4"
+                                                            Cursor="Hand">
+                                                        <TextBlock Text="✗ Recusar"/>
                                                     </Button>
                                                 </Grid>
                                             </Border>

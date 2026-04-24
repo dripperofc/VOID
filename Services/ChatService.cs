@@ -1,23 +1,43 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Void.Models;
 
 namespace Void.Services;
 
+// Handler que injeta o header ngrok em TODAS as requisições HTTP (negotiate + WebSocket upgrade)
+internal class NgrokHeaderHandler : DelegatingHandler
+{
+    public NgrokHeaderHandler(HttpMessageHandler inner) : base(inner) { }
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    {
+        request.Headers.TryAddWithoutValidation("ngrok-skip-browser-warning", "true");
+        return base.SendAsync(request, ct);
+    }
+}
+
 public class ChatService
 {
+    // ============================================================
+    // TODA VEZ QUE REINICIAR O NGROK, COLE O LINK NOVO AQUI:
+    // Exemplo: "https://a1b2-c3d4.ngrok-free.app"
+    private const string ServerUrl = "https://unretrogressively-standardizable-dung.ngrok-free.dev";
+    // ============================================================
+
     private HubConnection? _connection;
 
     public event Action<MessageItem>? MessageReceived;
     public event Action<MessageItem>? PrivateMessageReceived;
     public event Action<string, bool>? OnUserStatusChanged;
-    public event Action<string>? FriendRequestReceived;   // recebeu pedido de alguem
-    public event Action<string>? FriendRequestFailed;     // pedido falhou (user nao existe etc)
-    public event Action<string>? FriendRequestSent;       // pedido enviado com sucesso
-    public event Action<string>? FriendAccepted;          // amizade confirmada
+    public event Action<string>? FriendRequestReceived;
+    public event Action<string>? FriendRequestFailed;
+    public event Action<string>? FriendRequestSent;
+    public event Action<string>? FriendAccepted;
     public event Action<string>? ConnectionFailed;
 
     public bool IsConnected => _connection?.State == HubConnectionState.Connected;
@@ -31,18 +51,24 @@ public class ChatService
         }
 
         _connection = new HubConnectionBuilder()
-            .WithUrl($"http://localhost:5159/voidchat?username={username}")
+            .WithUrl($"{ServerUrl}/voidchat?username={username}", options =>
+            {
+                // Header no options (cobre parte da negociação)
+                options.Headers["ngrok-skip-browser-warning"] = "true";
+
+                // Handler HTTP garante o header em TODAS as requisições (negotiate + polling)
+                options.HttpMessageHandlerFactory = inner =>
+                    new NgrokHeaderHandler(inner);
+            })
             .WithAutomaticReconnect()
             .Build();
 
-        // Mensagens de canal
         _connection.On<object>("ReceiveMessage", raw =>
         {
             var msg = ParseMsg(raw);
             if (msg != null) MessageReceived?.Invoke(msg);
         });
 
-        // DMs — server envia (payload, fromUsername)
         _connection.On<object, string>("ReceivePrivateMessage", (raw, from) =>
         {
             var msg = ParseMsg(raw);
@@ -72,7 +98,6 @@ public class ChatService
         }
     }
 
-    /// <summary>Login ou registro via servidor. Retorna "ok", "user_exists", "invalid_credentials", "error"</summary>
     public async Task<string> AuthenticateAsync(string username, string password, bool isRegister)
     {
         if (!IsConnected) await ConnectAsync(username);
@@ -81,7 +106,7 @@ public class ChatService
         {
             return await _connection.InvokeAsync<string>("AuthenticateUser", username, password, isRegister);
         }
-        catch { return "error"; }
+        catch (Exception ex) { Console.WriteLine($"ERRO: {ex.Message}"); return "error"; }
     }
 
     public async Task<UserProfileDto?> GetUserProfileAsync(string username)
@@ -198,7 +223,6 @@ public class ChatService
     }
 }
 
-/// <summary>DTO para dados públicos do perfil vindos do servidor.</summary>
 public class UserProfileDto
 {
     public string   Username    { get; set; } = "";
