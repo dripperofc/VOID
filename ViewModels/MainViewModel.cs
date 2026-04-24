@@ -1,7 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
-using System.Threading.Tasks;
 using System.Linq;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Avalonia.Threading;
@@ -12,52 +12,34 @@ namespace Void.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    // UI state
     [ObservableProperty] private bool _isLoggedIn = false;
     [ObservableProperty] private bool _isRegisterView = false;
     [ObservableProperty] private bool _isLoading = false;
     [ObservableProperty] private bool _isInServer = false;
     [ObservableProperty] private bool _isChatOpen = false;
-    [ObservableProperty] private string _activeSidePanel = "";
+    [ObservableProperty] private bool _isAddFriendOpen = false;
+    [ObservableProperty] private bool _isCreateServerOpen = false;
+
+    // Aba DMs: "conversations" | "requests"
     [ObservableProperty] private string _dmTab = "conversations";
+    public bool IsConversationsTab  => DmTab == "conversations";
+    public bool IsFriendRequestsTab => DmTab == "requests";
+    public int  PendingCount        => PendingRequests.Count;
+    public bool HasPending          => PendingRequests.Count > 0;
+    partial void OnDmTabChanged(string value) { OnPropertyChanged(nameof(IsConversationsTab)); OnPropertyChanged(nameof(IsFriendRequestsTab)); }
 
-    public bool IsAddFriendOpen      => ActiveSidePanel == "addFriend";
-    public bool IsCreateServerOpen   => ActiveSidePanel == "createServer";
-    public bool IsConversationsTab   => DmTab == "conversations";
-    public bool IsFriendRequestsTab  => DmTab == "requests";
-
-    partial void OnDmTabChanged(string value)
-    {
-        OnPropertyChanged(nameof(IsConversationsTab));
-        OnPropertyChanged(nameof(IsFriendRequestsTab));
-        OnPropertyChanged(nameof(PendingRequestsCount));
-        OnPropertyChanged(nameof(HasPendingRequests));
-    }
-
-    partial void OnActiveSidePanelChanged(string value)
-    {
-        OnPropertyChanged(nameof(IsAddFriendOpen));
-        OnPropertyChanged(nameof(IsCreateServerOpen));
-    }
-
+    // Áudio
     private bool _isMuted = false;
-    public bool IsMuted
-    {
-        get => _isMuted;
-        set { SetProperty(ref _isMuted, value); OnPropertyChanged(nameof(MuteIcon)); OnPropertyChanged(nameof(MuteColor)); SoundService.Muted = value; }
-    }
-
+    public bool IsMuted { get => _isMuted; set { SetProperty(ref _isMuted, value); OnPropertyChanged(nameof(MuteIcon)); OnPropertyChanged(nameof(MuteColor)); SoundService.Muted = value; } }
     private bool _isDeafened = false;
-    public bool IsDeafened
-    {
-        get => _isDeafened;
-        set { SetProperty(ref _isDeafened, value); OnPropertyChanged(nameof(DeafenIcon)); OnPropertyChanged(nameof(DeafenColor)); }
-    }
-
+    public bool IsDeafened { get => _isDeafened; set { SetProperty(ref _isDeafened, value); OnPropertyChanged(nameof(DeafenIcon)); OnPropertyChanged(nameof(DeafenColor)); } }
     public string MuteIcon    => IsMuted    ? "X" : "M";
     public string DeafenIcon  => IsDeafened ? "X" : "H";
     public string MuteColor   => IsMuted    ? "#F04747" : "#6B7280";
     public string DeafenColor => IsDeafened ? "#F04747" : "#6B7280";
 
+    // Inputs
     [ObservableProperty] private string _usernameInput = "";
     [ObservableProperty] private string _nicknameInput = "";
     [ObservableProperty] private string _passwordInput = "";
@@ -71,35 +53,25 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _newServerName = "";
     [ObservableProperty] private string _newServerError = "";
 
+    // Dados
     public UserProfile CurrentUser { get; private set; } = new();
-    private readonly AuthenticationService _authService = new();
     private readonly ChatService _chatService = new();
-    private string _activePanel = "dm";
-    private ServerItem? _selectedServer;
     private FriendItem? _activeDmFriend;
     private ChannelItem? _activeChannel;
-    private DispatcherTimer? _closePanelTimer;
+    private ServerItem? _selectedServer;
+    private DispatcherTimer? _timer;
 
-    public ObservableCollection<MessageItem> ChatMessages   { get; } = new();
-    public ObservableCollection<FriendItem>  Friends        { get; } = new();
-    public ObservableCollection<FriendItem>  FriendRequests { get; } = new();
-    public ObservableCollection<ServerItem>  Servers        { get; } = new();
+    public ObservableCollection<MessageItem> ChatMessages    { get; } = new();
+    public ObservableCollection<FriendItem>  Friends         { get; } = new();
+    public ObservableCollection<FriendItem>  PendingRequests { get; } = new();
+    public ObservableCollection<ServerItem>  Servers         { get; } = new();
     public ObservableCollection<ChannelItem> CurrentChannels { get; } = new();
 
-    public int  PendingRequestsCount => FriendRequests.Count;
-    public bool HasPendingRequests   => FriendRequests.Count > 0;
-
-    public string WindowTitle => _activePanel == "server"
-        ? $"Void - {_selectedServer?.Name}"
-        : "Void - Mensagens";
+    public string WindowTitle => IsInServer ? $"Void - {_selectedServer?.Name}" : "Void - Mensagens";
 
     public MainViewModel()
     {
-        FriendRequests.CollectionChanged += (_, _) =>
-        {
-            OnPropertyChanged(nameof(PendingRequestsCount));
-            OnPropertyChanged(nameof(HasPendingRequests));
-        };
+        PendingRequests.CollectionChanged += (_, _) => { OnPropertyChanged(nameof(PendingCount)); OnPropertyChanged(nameof(HasPending)); };
 
         _chatService.MessageReceived += msg => Dispatcher.UIThread.Post(() =>
         {
@@ -111,7 +83,8 @@ public partial class MainViewModel : ObservableObject
         _chatService.PrivateMessageReceived += msg => Dispatcher.UIThread.Post(() =>
         {
             if (msg == null) return;
-            if (msg.Author?.Username == CurrentUser.Username) return; // ignora echo proprio
+            // ignora echo das proprias mensagens
+            if (msg.Author?.Nickname == CurrentUser.Nickname || msg.Author?.Username == CurrentUser.Username) return;
             if (_activeDmFriend == null) return;
             ChatMessages.Add(msg);
             SoundService.Play("message");
@@ -122,15 +95,38 @@ public partial class MainViewModel : ObservableObject
             var f = Friends.FirstOrDefault(x => x.Name.Equals(userId, StringComparison.OrdinalIgnoreCase));
             if (f == null) return;
             f.Status = isOnline ? "Online" : "Offline";
-            if (_activeDmFriend == f)
-                CurrentChatSubtitle = isOnline ? "Online" : "Offline"; // FIX: atualiza header
+            if (_activeDmFriend == f) CurrentChatSubtitle = isOnline ? "Online" : "Offline";
             SoundService.Play(isOnline ? "join" : "disconnect");
         });
 
+        _chatService.FriendRequestReceived += from => Dispatcher.UIThread.Post(() =>
+        {
+            if (PendingRequests.Any(p => p.Name.Equals(from, StringComparison.OrdinalIgnoreCase))) return;
+            PendingRequests.Add(new FriendItem { Name = from, Nickname = from, Status = "Online", Initials = from[0].ToString().ToUpper(), AvatarColor = AvatarColor(from) });
+            SoundService.Play("message");
+        });
+
+        _chatService.FriendRequestFailed += reason => Dispatcher.UIThread.Post(() =>
+            AddFriendError = reason);
+
+        _chatService.FriendRequestSent += to => Dispatcher.UIThread.Post(() =>
+        {
+            AddFriendSuccess = $"Pedido enviado para {to}!";
+            AddFriendInput = "";
+            StartCloseTimer();
+        });
+
+        _chatService.FriendAccepted += friend => Dispatcher.UIThread.Post(() =>
+        {
+            AddFriendToList(friend);
+            SoundService.Play("join");
+        });
+
         _chatService.ConnectionFailed += err => Dispatcher.UIThread.Post(() =>
-            LoginError = $"Erro de conexao: {err}");
+            LoginError = $"Servidor offline: {err}");
     }
 
+    // SESSAO
     [RelayCommand] public void ToggleView() { IsRegisterView = !IsRegisterView; UsernameInput = ""; PasswordInput = ""; NicknameInput = ""; LoginError = ""; }
 
     [RelayCommand]
@@ -138,10 +134,11 @@ public partial class MainViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(UsernameInput) || string.IsNullOrWhiteSpace(PasswordInput)) { LoginError = "Preencha usuario e senha."; return; }
         IsLoading = true; LoginError = "";
-        var profile = await _authService.LoginAsync(UsernameInput.Trim(), PasswordInput);
+        var result = await _chatService.AuthenticateAsync(UsernameInput.Trim().ToLower(), PasswordInput, false);
         IsLoading = false;
-        if (profile == null) { LoginError = "Usuario ou senha incorretos."; return; }
-        await EnterApp(profile);
+        if (result == "ok") await EnterApp(UsernameInput.Trim().ToLower());
+        else if (result == "invalid_credentials") LoginError = "Usuario ou senha incorretos.";
+        else LoginError = "Servidor offline ou erro desconhecido.";
     }
 
     [RelayCommand]
@@ -150,37 +147,58 @@ public partial class MainViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(UsernameInput) || string.IsNullOrWhiteSpace(PasswordInput)) { LoginError = "Preencha usuario e senha."; return; }
         if (PasswordInput.Length < 4) { LoginError = "Senha: minimo 4 caracteres."; return; }
         IsLoading = true; LoginError = "";
-        var profile = await _authService.RegisterAsync(UsernameInput.Trim(), NicknameInput.Trim(), PasswordInput);
+        var result = await _chatService.AuthenticateAsync(UsernameInput.Trim().ToLower(), PasswordInput, true);
         IsLoading = false;
-        if (profile == null) { LoginError = "Usuario ja existe."; return; }
-        await EnterApp(profile);
+        if (result == "ok") await EnterApp(UsernameInput.Trim().ToLower());
+        else if (result == "user_exists") LoginError = "Usuario ja existe.";
+        else LoginError = "Servidor offline. Nao e possivel criar conta.";
     }
 
-    private async Task EnterApp(UserProfile profile)
+    private async Task EnterApp(string username)
     {
-        CurrentUser = profile; IsLoggedIn = true;
+        // Busca perfil completo do servidor
+        var profile = await _chatService.GetUserProfileAsync(username);
+        CurrentUser = new UserProfile
+        {
+            Username  = username,
+            Nickname  = profile?.Nickname ?? username,
+            AvatarColor = profile?.AvatarColor ?? "#5865F2",
+            Initials  = profile?.Initials ?? username[0].ToString().ToUpper()
+        };
         OnPropertyChanged(nameof(CurrentUser));
-        await _chatService.ConnectAsync(CurrentUser.Username);
+
+        // Carrega lista de amigos do perfil
+        if (profile?.Friends != null)
+            foreach (var f in profile.Friends)
+                AddFriendToList(f);
+
+        // Carrega pedidos pendentes
+        var pending = await _chatService.GetPendingRequestsAsync(username);
+        foreach (var p in pending)
+            if (!PendingRequests.Any(x => x.Name.Equals(p, StringComparison.OrdinalIgnoreCase)))
+                PendingRequests.Add(new FriendItem { Name = p, Nickname = p, Status = "Online", Initials = p[0].ToString().ToUpper(), AvatarColor = AvatarColor(p) });
+
+        IsLoggedIn = true;
         OpenDmPanel();
     }
 
     [RelayCommand]
     public async Task Logout()
     {
-        _closePanelTimer?.Stop();
-        await _authService.LogoutAsync();
+        _timer?.Stop();
         await _chatService.DisconnectAsync();
         IsLoggedIn = false; IsChatOpen = false; DmTab = "conversations";
-        ChatMessages.Clear(); Friends.Clear(); FriendRequests.Clear();
+        ChatMessages.Clear(); Friends.Clear(); PendingRequests.Clear();
         CurrentChannels.Clear(); Servers.Clear();
-        UsernameInput = ""; PasswordInput = ""; NicknameInput = ""; LoginError = ""; ActiveSidePanel = "";
+        UsernameInput = ""; PasswordInput = ""; NicknameInput = ""; LoginError = "";
     }
 
+    // NAVEGACAO
     [RelayCommand]
     public void OpenDmPanel()
     {
-        _activePanel = "dm"; IsInServer = false; _selectedServer = null; _activeChannel = null;
-        IsChatOpen = _activeDmFriend != null; ActiveSidePanel = "";
+        IsInServer = false; _selectedServer = null; _activeChannel = null;
+        IsChatOpen = _activeDmFriend != null; IsCreateServerOpen = false;
         OnPropertyChanged(nameof(WindowTitle));
     }
 
@@ -188,7 +206,7 @@ public partial class MainViewModel : ObservableObject
     public async Task SelectServer(ServerItem s)
     {
         if (s == null) return;
-        _activePanel = "server"; _selectedServer = s; IsInServer = true; _activeDmFriend = null; ActiveSidePanel = "";
+        _selectedServer = s; IsInServer = true; _activeDmFriend = null; IsCreateServerOpen = false;
         CurrentChannels.Clear();
         if (s.Channels != null) foreach (var c in s.Channels) CurrentChannels.Add(c);
         var first = CurrentChannels.FirstOrDefault(c => c.Type == ChannelType.Text);
@@ -196,10 +214,12 @@ public partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(WindowTitle));
     }
 
+    // TABS
     [RelayCommand] public void ShowConversations() => DmTab = "conversations";
     [RelayCommand] public void ShowFriendRequests() => DmTab = "requests";
 
-    [RelayCommand] public void ToggleCreateServer() { ActiveSidePanel = IsCreateServerOpen ? "" : "createServer"; NewServerName = ""; NewServerError = ""; }
+    // SERVIDOR
+    [RelayCommand] public void ToggleCreateServer() { IsCreateServerOpen = !IsCreateServerOpen; NewServerName = ""; NewServerError = ""; }
 
     [RelayCommand]
     public async Task ConfirmCreateServer()
@@ -208,21 +228,20 @@ public partial class MainViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(name)) { NewServerError = "Digite um nome."; return; }
         if (name.Length < 2) { NewServerError = "Nome muito curto."; return; }
         if (Servers.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) { NewServerError = "Nome ja existe."; return; }
-
         var server = new ServerItem
         {
             Id = Servers.Count + 1, Name = name, OwnerId = CurrentUser.Id,
             Channels = new System.Collections.Generic.List<ChannelItem>
             {
                 new ChannelItem { Id = 1, Name = "geral",     Type = ChannelType.Text, Topic = "Canal principal" },
-                new ChannelItem { Id = 2, Name = "off-topic", Type = ChannelType.Text, Topic = "Assuntos livres" },
+                new ChannelItem { Id = 2, Name = "off-topic", Type = ChannelType.Text, Topic = "Assuntos livres"  },
             }
         };
-        Servers.Add(server);
-        NewServerName = ""; NewServerError = ""; ActiveSidePanel = "";
+        Servers.Add(server); NewServerName = ""; NewServerError = ""; IsCreateServerOpen = false;
         await SelectServer(server);
     }
 
+    // CANAIS
     [RelayCommand]
     public async Task SelectChannel(ChannelItem c)
     {
@@ -234,43 +253,39 @@ public partial class MainViewModel : ObservableObject
             await _chatService.JoinChannelAsync(_selectedServer.Name, c.Name);
     }
 
-    [RelayCommand] public void ToggleAddFriend() { ActiveSidePanel = IsAddFriendOpen ? "" : "addFriend"; AddFriendInput = ""; AddFriendError = ""; AddFriendSuccess = ""; }
+    // AMIGOS
+    [RelayCommand] public void ToggleAddFriend() { IsAddFriendOpen = !IsAddFriendOpen; AddFriendInput = ""; AddFriendError = ""; AddFriendSuccess = ""; }
 
     [RelayCommand]
-    public void ConfirmAddFriend()
+    public async Task ConfirmAddFriend()
     {
-        var name = AddFriendInput.Trim();
+        var name = AddFriendInput.Trim().ToLower();
         AddFriendError = ""; AddFriendSuccess = "";
-        if (string.IsNullOrWhiteSpace(name)) { AddFriendError = "Digite um nome de usuario."; return; }
-        if (name.Equals(CurrentUser.Username, StringComparison.OrdinalIgnoreCase)) { AddFriendError = "Voce nao pode adicionar a si mesmo."; return; }
+        if (string.IsNullOrWhiteSpace(name)) { AddFriendError = "Digite um nome."; return; }
+        if (name == CurrentUser.Username) { AddFriendError = "Voce nao pode se adicionar."; return; }
         if (Friends.Any(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) { AddFriendError = "Ja esta na sua lista."; return; }
 
-        Friends.Add(new FriendItem { Name = name, Nickname = name, Status = "Offline", Initials = name[0].ToString().ToUpper(), AvatarColor = GetAvatarColor(name) });
-        AddFriendSuccess = $"+ {name} adicionado!";
-        AddFriendInput = "";
-        SoundService.Play("join");
-
-        _closePanelTimer?.Stop();
-        _closePanelTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
-        _closePanelTimer.Tick += (_, _) => { _closePanelTimer!.Stop(); AddFriendSuccess = ""; ActiveSidePanel = ""; };
-        _closePanelTimer.Start();
+        if (_chatService.IsConnected)
+            await _chatService.SendFriendRequestAsync(name);
+        else
+            AddFriendError = "Servidor offline.";
     }
 
     [RelayCommand]
-    public void AcceptFriendRequest(FriendItem f)
+    public async Task AcceptFriendRequest(FriendItem f)
     {
         if (f == null) return;
-        FriendRequests.Remove(f);
-        f.Status = "Online";
-        Friends.Add(f);
-        SoundService.Play("join");
+        PendingRequests.Remove(f);
+        AddFriendToList(f.Name);
+        await _chatService.AcceptFriendRequestAsync(f.Name);
     }
 
     [RelayCommand]
-    public void DeclineFriendRequest(FriendItem f)
+    public async Task DeclineFriendRequest(FriendItem f)
     {
         if (f == null) return;
-        FriendRequests.Remove(f);
+        PendingRequests.Remove(f);
+        await _chatService.DeclineFriendRequestAsync(f.Name);
     }
 
     [RelayCommand]
@@ -282,16 +297,19 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public void SelectFriend(FriendItem f)
+    public async Task SelectFriend(FriendItem f)
     {
         if (f == null) return;
-        _activeDmFriend = f; _activeChannel = null; _activePanel = "dm"; IsInServer = false;
+        _activeDmFriend = f; _activeChannel = null; IsInServer = false;
         CurrentChatName = f.Nickname.Length > 0 ? f.Nickname : f.Name;
-        CurrentChatSubtitle = f.IsOnline ? "Online" : "Offline"; // FIX: usa status real
-        IsChatOpen = true; ChatMessages.Clear(); ActiveSidePanel = "";
+        CurrentChatSubtitle = f.IsOnline ? "Online" : "Offline";
+        IsChatOpen = true; ChatMessages.Clear(); IsAddFriendOpen = false;
         OnPropertyChanged(nameof(WindowTitle));
+        var history = await _chatService.GetChatHistoryAsync(f.Name);
+        Dispatcher.UIThread.Post(() => { foreach (var m in history) ChatMessages.Add(m); });
     }
 
+    // MENSAGEM
     [RelayCommand]
     public async Task ProcessMessage()
     {
@@ -300,19 +318,44 @@ public partial class MainViewModel : ObservableObject
         Input = "";
         if (_activeChannel != null && _chatService.IsConnected && _selectedServer != null)
             await _chatService.SendMessageAsync(msg, _selectedServer.Name, _activeChannel.Name);
-        else if (_activeDmFriend != null && _chatService.IsConnected)
-        { ChatMessages.Add(msg); await _chatService.SendPrivateMessageAsync(_activeDmFriend.Name, msg.Content, CurrentUser.Username); }
+        else if (_activeDmFriend != null)
+        {
+            if (_chatService.IsConnected)
+            {
+                ChatMessages.Add(msg); // adiciona localmente
+                await _chatService.SendPrivateMessageAsync(CurrentUser.Nickname, _activeDmFriend.Name, msg.Content);
+            }
+            else
+                ChatMessages.Add(msg);
+        }
         else
             _chatService.SimulateMessageReceived(msg);
     }
 
+    // AUDIO
     [RelayCommand] public void ToggleMute()   { IsMuted = !IsMuted; SoundService.Play(IsMuted ? "pttoff" : "ptton"); }
     [RelayCommand] public void ToggleDeafen() { IsDeafened = !IsDeafened; IsMuted = IsDeafened; SoundService.Play(IsDeafened ? "deafen" : "undeafen"); }
     [RelayCommand] public void OpenSettings() { }
 
-    private static string GetAvatarColor(string name)
+    // HELPERS
+    private void AddFriendToList(string name)
     {
-        var colors = new[] { "#5865F2", "#57F287", "#FEE75C", "#EB459E", "#ED4245", "#00C9A7", "#8B5CF6" };
-        return colors[Math.Abs(name.GetHashCode()) % colors.Length];
+        if (string.IsNullOrWhiteSpace(name)) return;
+        if (Friends.Any(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) return;
+        Friends.Add(new FriendItem { Name = name, Nickname = name, Status = "Offline", Initials = name[0].ToString().ToUpper(), AvatarColor = AvatarColor(name) });
+    }
+
+    private void StartCloseTimer()
+    {
+        _timer?.Stop();
+        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
+        _timer.Tick += (_, _) => { _timer!.Stop(); AddFriendSuccess = ""; IsAddFriendOpen = false; };
+        _timer.Start();
+    }
+
+    private static string AvatarColor(string name)
+    {
+        var c = new[] { "#5865F2","#57F287","#FEE75C","#EB459E","#ED4245","#00C9A7","#8B5CF6" };
+        return c[Math.Abs(name.GetHashCode()) % c.Length];
     }
 }

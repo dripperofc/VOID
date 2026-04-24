@@ -3,20 +3,16 @@
         xmlns:vm="using:Void.ViewModels"
         x:Class="Void.Views.MainWindow"
         x:DataType="vm:MainViewModel"
+        x:Name="RootWindow" 
         Title="{Binding WindowTitle}"
         Width="1100" MinWidth="820"
         Height="720" MinHeight="520"
         Background="{StaticResource BgPrimaryBrush}"
         WindowStartupLocation="CenterScreen">
+        <Panel>
 
-    <Panel>
-
-        <!-- ══════════════════════════════════ -->
-        <!--            TELA DE AUTH            -->
-        <!-- ══════════════════════════════════ -->
         <Grid IsVisible="{Binding !IsLoggedIn}" Background="{StaticResource BgPrimaryBrush}">
 
-            <!-- Fundo com gradiente sutil de profundidade -->
             <Border Background="#0A0A18" Opacity="0.6"/>
 
             <Border VerticalAlignment="Center" HorizontalAlignment="Center"
@@ -28,7 +24,6 @@
                     Padding="40,36">
                 <StackPanel Spacing="0">
 
-                    <!-- Logo -->
                     <StackPanel Spacing="4" Margin="0,0,0,28">
                         <TextBlock Text="VOID"
                                    FontSize="28" FontWeight="Black" LetterSpacing="5"
@@ -50,7 +45,7 @@
                         <StackPanel IsVisible="{Binding IsRegisterView}" Spacing="6">
                             <TextBlock Text="APELIDO" FontSize="11" FontWeight="Bold"
                                        LetterSpacing="1" Foreground="{StaticResource TextSecondaryBrush}"/>
-                            <TextBox Text="{Binding NicknameInput}" Watermark="Como quer ser chamado"/>
+                            <TextBox Text="{Binding Nicknameinput}" Watermark="Como quer ser chamado"/>
                         </StackPanel>
                         <StackPanel Spacing="6">
                             <TextBlock Text="USUÁRIO" FontSize="11" FontWeight="Bold"
@@ -64,7 +59,6 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <!-- Erro -->
                     <Border IsVisible="{Binding LoginError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                             Background="#F0474712" CornerRadius="6"
                             BorderBrush="#F0474730" BorderThickness="1"
@@ -73,12 +67,10 @@
                                    FontSize="12" TextWrapping="Wrap" HorizontalAlignment="Center"/>
                     </Border>
 
-                    <!-- Loading -->
                     <TextBlock IsVisible="{Binding IsLoading}" Text="Aguarde..."
                                Foreground="{StaticResource TextSecondaryBrush}"
                                FontSize="12" HorizontalAlignment="Center" Margin="0,12,0,0"/>
 
-                    <!-- Botão -->
                     <Button IsVisible="{Binding !IsRegisterView}"
                             Command="{Binding ConfirmLoginCommand}"
                             Classes="ActionBtn"
@@ -92,7 +84,6 @@
                             Foreground="#080810" Content="Criar conta"
                             HorizontalAlignment="Stretch" Margin="0,20,0,0"/>
 
-                    <!-- Toggle -->
                     <Button Command="{Binding ToggleViewCommand}"
                             Background="Transparent" BorderThickness="0"
                             HorizontalAlignment="Center" Cursor="Hand" Margin="0,14,0,0">
@@ -112,14 +103,8 @@
             </Border>
         </Grid>
 
-        <!-- ══════════════════════════════════ -->
-        <!--          TELA PRINCIPAL            -->
-        <!-- ══════════════════════════════════ -->
         <Grid IsVisible="{Binding IsLoggedIn}" ColumnDefinitions="64,230,*">
 
-            <!-- ─────────────────────────── -->
-            <!-- COL 1: SERVIDORES (64px)    -->
-            <!-- ─────────────────────────── -->
             <Border Grid.Column="0"
                     Background="{StaticResource BgSecondaryBrush}"
                     BorderBrush="{StaticResource BorderBrush}"
@@ -130,7 +115,6 @@
                                   HorizontalScrollBarVisibility="Disabled">
                         <StackPanel Spacing="8" Margin="0,10,0,0" HorizontalAlignment="Center">
 
-                            <!-- DMs -->
                             <Button Classes="ServerBtn"
                                     Command="{Binding OpenDmPanelCommand}"
                                     ToolTip.Tip="Mensagens Diretas">
@@ -140,13 +124,12 @@
 
                             <Border Height="1" Width="28" Background="{StaticResource BorderBrush}" Margin="0,2"/>
 
-                            <!-- Servidores -->
                             <ItemsControl ItemsSource="{Binding Servers}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Panel Margin="0,0,0,8">
                                             <Button Classes="ServerBtn"
-                                                    Command="{Binding $parent[Window].DataContext.SelectServerCommand}"
+                                                    Command="{Binding DataContext.SelectServerCommand, ElementName=RootWindow}"
                                                     CommandParameter="{Binding}"
                                                     ToolTip.Tip="{Binding Name}">
                                                 <TextBlock Text="{Binding Name[0]}"
@@ -160,7 +143,6 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
-                            <!-- Botão criar servidor -->
                             <Button Classes="ServerAddBtn"
                                     Command="{Binding ToggleCreateServerCommand}"
                                     ToolTip.Tip="Criar servidor">
@@ -174,16 +156,12 @@
                 </DockPanel>
             </Border>
 
-            <!-- ─────────────────────────── -->
-            <!-- COL 2: SIDEBAR (230px)      -->
-            <!-- ─────────────────────────── -->
             <Border Grid.Column="1"
                     Background="{StaticResource BgTertiaryBrush}"
                     BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="0,0,1,0">
                 <DockPanel>
 
-                    <!-- Rodapé do usuário -->
                     <Border DockPanel.Dock="Bottom"
                             Background="{StaticResource BgSecondaryBrush}"
                             BorderBrush="{StaticResource BorderBrush}"
@@ -206,11 +184,11 @@
                             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="1" VerticalAlignment="Center">
                                 <Button Classes="IconBtn" Command="{Binding ToggleMuteCommand}"
                                         Foreground="{Binding MuteColor}" ToolTip.Tip="Microfone">
-                                    <TextBlock Text="{Binding MuteIcon}" FontSize="13"/>
+                                    <TextBlock Text="{Binding MuteIcon}" FontSize="12"/>
                                 </Button>
                                 <Button Classes="IconBtn" Command="{Binding ToggleDeafenCommand}"
                                         Foreground="{Binding DeafenColor}" ToolTip.Tip="Fones">
-                                    <TextBlock Text="{Binding DeafenIcon}" FontSize="13"/>
+                                    <TextBlock Text="{Binding DeafenIcon}" FontSize="12"/>
                                 </Button>
                                 <Button Classes="IconBtn" Command="{Binding OpenSettingsCommand}"
                                         Foreground="{StaticResource TextSecondaryBrush}" ToolTip.Tip="Configurações">
@@ -220,11 +198,9 @@
                         </Grid>
                     </Border>
 
-                    <!-- Conteúdo da sidebar -->
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
 
-                            <!-- ── DMs ── -->
                             <StackPanel IsVisible="{Binding !IsInServer}">
 
                                 <Grid ColumnDefinitions="*,Auto" Margin="10,12,6,4">
@@ -238,9 +214,7 @@
                                                    Foreground="{StaticResource TextSecondaryBrush}"/>
                                     </Button>
                                 </Grid>
-                                
 
-                                <!-- Painel adicionar amigo -->
                                 <Border Classes="SidePanel"
                                         IsVisible="{Binding IsAddFriendOpen}">
                                     <StackPanel Spacing="8">
@@ -270,13 +244,11 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- ABA: Conversas -->
-                                <ItemsControl ItemsSource="{Binding Friends}" Margin="5,0,5,0"
-                                              IsVisible="{Binding IsConversationsTab}">
+                                <ItemsControl ItemsSource="{Binding Friends}" Margin="5,0,5,0">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Button Classes="FriendBtn"
-                                                    Command="{Binding $parent[Window].DataContext.SelectFriendCommand}"
+                                                    Command="{Binding DataContext.SelectFriendCommand, ElementName=RootWindow}"
                                                     CommandParameter="{Binding}">
                                                 <Grid ColumnDefinitions="Auto,*,Auto">
                                                     <Panel Width="32" Height="32" Margin="0,0,8,0">
@@ -292,7 +264,7 @@
                                                                 HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                                                 Margin="0,0,-2,-2">
                                                             <Border Width="7" Height="7" CornerRadius="4"
-                                                                    Background="{Binding StatusColor}"
+                                                                    Background="{StaticResource GreenBrush}"
                                                                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                         </Border>
                                                     </Panel>
@@ -305,7 +277,7 @@
                                                                    Foreground="{StaticResource TextSecondaryBrush}"/>
                                                     </StackPanel>
                                                     <Button Grid.Column="2"
-                                                            Command="{Binding $parent[Window].DataContext.RemoveFriendCommand}"
+                                                            Command="{Binding DataContext.RemoveFriendCommand, ElementName=RootWindow}"
                                                             CommandParameter="{Binding}"
                                                             Classes="IconBtn" Padding="4"
                                                             Foreground="{StaticResource TextMutedBrush}"
@@ -318,62 +290,24 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
 
-                                <!-- ABA: Pedidos de amizade -->
-                                <StackPanel IsVisible="{Binding IsFriendRequestsTab}" Margin="5,0,5,0">
-                                    <StackPanel IsVisible="{Binding !HasPendingRequests}"
-                                                Margin="12,16" Spacing="4">
-                                        <TextBlock Text="Nenhum pedido pendente" FontSize="13"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextSecondaryBrush}"/>
-                                        <TextBlock Text="Quando alguem te adicionar aparecera aqui"
-                                                   FontSize="11" Foreground="{StaticResource TextMutedBrush}"
-                                                   TextWrapping="Wrap"/>
-                                    </StackPanel>
-                                    <ItemsControl ItemsSource="{Binding FriendRequests}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Padding="8,6" Margin="5,2">
-                                                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
-                                                        <Border Width="32" Height="32" CornerRadius="16"
-                                                                Background="{Binding AvatarColor}"
-                                                                Margin="0,0,8,0">
-                                                            <TextBlock Text="{Binding Initials}"
-                                                                       Foreground="White" FontWeight="Bold"
-                                                                       FontSize="13" HorizontalAlignment="Center"
-                                                                       VerticalAlignment="Center"/>
-                                                        </Border>
-                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
-                                                            <TextBlock Text="{Binding Name}"
-                                                                       FontSize="13" FontWeight="SemiBold"
-                                                                       Foreground="{StaticResource TextPrimaryBrush}"/>
-                                                            <TextBlock Text="Quer ser seu amigo"
-                                                                       FontSize="11"
-                                                                       Foreground="{StaticResource TextSecondaryBrush}"/>
-                                                        </StackPanel>
-                                                        <Button Grid.Column="2"
-                                                                Command="{Binding $parent[Window].DataContext.AcceptFriendRequestCommand}"
-                                                                CommandParameter="{Binding}"
-                                                                Background="{StaticResource GreenBrush}"
-                                                                Foreground="White"
-                                                                CornerRadius="6" Padding="8,4"
-                                                                FontSize="11" FontWeight="Bold"
-                                                                Margin="4,0" Content="Aceitar"/>
-                                                        <Button Grid.Column="3"
-                                                                Command="{Binding $parent[Window].DataContext.DeclineFriendRequestCommand}"
-                                                                CommandParameter="{Binding}"
-                                                                Background="{StaticResource RedBrush}"
-                                                                Foreground="White"
-                                                                CornerRadius="6" Padding="8,4"
-                                                                FontSize="11" FontWeight="Bold"
-                                                                Content="Recusar"/>
-                                                    </Grid>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
+                                <ItemsControl ItemsSource="{Binding PendingRequests}" Margin="5,10,5,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#2B2D31" CornerRadius="4" Padding="8" Margin="0,0,0,4">
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <TextBlock Text="{Binding}" Foreground="White" VerticalAlignment="Center" FontSize="12"/>
+                                                    <Button Grid.Column="1" 
+                                                            Command="{Binding DataContext.AcceptFriendCommand, ElementName=RootWindow}"
+                                                            CommandParameter="{Binding}"
+                                                            Background="#3BA55C" Foreground="White" FontSize="11" Padding="8,4" CornerRadius="4" Cursor="Hand">
+                                                        <TextBlock Text="Aceitar"/>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
 
-                                <!-- Placeholder conversas -->
                                 <StackPanel Margin="12,16" Spacing="4"
                                             IsVisible="{Binding Friends.Count, Converter={x:Static ObjectConverters.IsNull}}">
                                     <TextBlock Text="Nenhuma conversa" FontSize="13" FontWeight="SemiBold"
@@ -385,7 +319,6 @@
 
                             </StackPanel>
 
-                            <!-- ── CANAIS DO SERVIDOR ── -->
                             <StackPanel IsVisible="{Binding IsInServer}">
 
                                 <Grid ColumnDefinitions="*,Auto" Margin="10,12,6,4">
@@ -398,7 +331,7 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Button Classes="ChannelBtn"
-                                                    Command="{Binding $parent[Window].DataContext.SelectChannelCommand}"
+                                                    Command="{Binding DataContext.SelectChannelCommand, ElementName=RootWindow}"
                                                     CommandParameter="{Binding}">
                                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                                     <TextBlock Text="#" FontSize="15" FontWeight="Bold"
@@ -420,13 +353,9 @@
                 </DockPanel>
             </Border>
 
-            <!-- ─────────────────────────── -->
-            <!-- COL 3: CHAT               -->
-            <!-- ─────────────────────────── -->
             <Grid Grid.Column="2" RowDefinitions="48,*,Auto"
                   Background="{StaticResource BgPrimaryBrush}">
 
-                <!-- Header -->
                 <Border Grid.Row="0"
                         Background="{StaticResource BgPrimaryBrush}"
                         BorderBrush="{StaticResource BorderBrush}"
@@ -441,11 +370,10 @@
                                     IsVisible="{Binding IsChatOpen}"/>
                             <TextBlock Text="{Binding CurrentChatSubtitle}"
                                        IsVisible="{Binding IsChatOpen}"
-                                       FontSize="12" Foreground="{StaticResource AccentBrush}"
+                                       FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
 
-                        <!-- Painel criar servidor (no header quando em modo servidor) -->
                         <Border Grid.Column="1" IsVisible="{Binding IsCreateServerOpen}"
                                 Background="{StaticResource BgCardBrush}"
                                 CornerRadius="10"
@@ -489,10 +417,8 @@
                     </Grid>
                 </Border>
 
-                <!-- Mensagens -->
                 <Panel Grid.Row="1">
 
-                    <!-- Vazio -->
                     <StackPanel IsVisible="{Binding !IsChatOpen}"
                                 VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10">
                         <TextBlock Text="💬" FontSize="44" HorizontalAlignment="Center"/>
@@ -543,7 +469,6 @@
                     </ScrollViewer>
                 </Panel>
 
-                <!-- Input -->
                 <Border Grid.Row="2" IsVisible="{Binding IsChatOpen}"
                         Padding="16,0,16,14">
                     <Border Background="{StaticResource BgInputBrush}"
