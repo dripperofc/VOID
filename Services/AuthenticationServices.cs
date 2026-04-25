@@ -6,62 +6,50 @@ using Void.Models;
 
 namespace Void.Services;
 
-// Classe interna usada APENAS para salvar/ler o arquivo JSON com senha
-// Nunca deve circular pelo resto da aplicação
+// Classe interna para salvar/ler o arquivo JSON com senha hash
 file class StoredAccount
 {
     public UserProfile Profile { get; set; } = new();
-    public string PasswordHash { get; set; } = string.Empty;
+    public string PasswordHash { get; set; } = string.Empty; // formato "salt$hash"
 }
 
 public class AuthenticationService
 {
-    private readonly JsonSerializerOptions _jsonOptions;
+    private readonly SecurityService _security = new();
+    private readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true
+    };
 
     public UserProfile? CurrentUser { get; private set; }
-
-    public AuthenticationService()
-    {
-        _jsonOptions = new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            PropertyNameCaseInsensitive = true
-        };
-    }
 
     public async Task<UserProfile?> LoginAsync(string username, string password)
     {
         try
         {
             var accountPath = $"Accounts/{username.ToLower()}.json";
+            if (!File.Exists(accountPath)) return null;
 
-            if (!File.Exists(accountPath))
-                return null;
+            var stored = JsonSerializer.Deserialize<StoredAccount>(
+                await File.ReadAllTextAsync(accountPath), _jsonOptions);
+            if (stored == null) return null;
 
-            var json = await File.ReadAllTextAsync(accountPath);
-            var stored = JsonSerializer.Deserialize<StoredAccount>(json, _jsonOptions);
-
-            if (stored == null)
-                return null;
-
-            // Verificação de senha (depois melhorar com hash bcrypt)
-            if (stored.PasswordHash != password)
+            // Verificação com SHA-256 + salt (VerifyPassword suporta legado também)
+            if (!_security.VerifyPassword(password, stored.PasswordHash))
                 return null;
 
             CurrentUser = stored.Profile;
             CurrentUser.LastLogin = DateTime.Now;
 
-            // Atualizar último login mantendo a senha no arquivo
+            // Atualiza LastLogin mantendo hash intacto
             stored.Profile = CurrentUser;
-            var updatedJson = JsonSerializer.Serialize(stored, _jsonOptions);
-            await File.WriteAllTextAsync(accountPath, updatedJson);
+            await File.WriteAllTextAsync(accountPath,
+                JsonSerializer.Serialize(stored, _jsonOptions));
 
             return CurrentUser;
         }
-        catch
-        {
-            return null;
-        }
+        catch { return null; }
     }
 
     public async Task<UserProfile?> RegisterAsync(string username, string nickname, string password)
@@ -69,43 +57,35 @@ public class AuthenticationService
         try
         {
             var accountPath = $"Accounts/{username.ToLower()}.json";
-
-            if (File.Exists(accountPath))
-                return null;
-
+            if (File.Exists(accountPath)) return null;
             Directory.CreateDirectory("Accounts");
 
             var nextId = GetNextUserId();
-
             var profile = new UserProfile
             {
-                Id = nextId,
-                Username = username,
-                Nickname = string.IsNullOrWhiteSpace(nickname) ? username : nickname,
+                Id        = nextId,
+                Username  = username,
+                Nickname  = string.IsNullOrWhiteSpace(nickname) ? username : nickname,
                 CreatedAt = DateTime.Now,
                 LastLogin = DateTime.Now,
                 AvatarColor = "#5865F2",
-                Initials = username.Length >= 2 ? username[..2].ToUpper() : username.ToUpper(),
-                IsOwner = username.ToLower() == "admin" || username.ToLower() == "dono"
+                Initials  = username.Length >= 2 ? username[..2].ToUpper() : username.ToUpper(),
+                IsOwner   = username.ToLower() is "admin" or "dono"
             };
 
-            // Senha fica isolada no StoredAccount, nunca no UserProfile
             var stored = new StoredAccount
             {
-                Profile = profile,
-                PasswordHash = password // TODO: substituir por bcrypt hash
+                Profile      = profile,
+                PasswordHash = _security.HashPassword(password) // SHA-256 + salt
             };
 
-            var json = JsonSerializer.Serialize(stored, _jsonOptions);
-            await File.WriteAllTextAsync(accountPath, json);
+            await File.WriteAllTextAsync(accountPath,
+                JsonSerializer.Serialize(stored, _jsonOptions));
 
             CurrentUser = profile;
             return profile;
         }
-        catch
-        {
-            return null;
-        }
+        catch { return null; }
     }
 
     public Task<bool> LogoutAsync()
@@ -116,22 +96,14 @@ public class AuthenticationService
 
     private int GetNextUserId()
     {
-        var lockFile = "last_id.txt";
-
-        if (!File.Exists(lockFile))
-        {
-            File.WriteAllText(lockFile, "1000");
-            return 1000;
-        }
-
+        const string lockFile = "last_id.txt";
+        if (!File.Exists(lockFile)) { File.WriteAllText(lockFile, "1000"); return 1000; }
         var content = File.ReadAllText(lockFile);
-        if (int.TryParse(content, out int currentId))
+        if (int.TryParse(content, out int id))
         {
-            var nextId = currentId + 1;
-            File.WriteAllText(lockFile, nextId.ToString());
-            return nextId;
+            File.WriteAllText(lockFile, (id + 1).ToString());
+            return id + 1;
         }
-
         return 1000;
     }
 }

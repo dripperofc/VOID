@@ -167,10 +167,13 @@ public partial class MainViewModel : ObservableObject
         };
         OnPropertyChanged(nameof(CurrentUser));
 
-        // Carrega lista de amigos do perfil
+        // Carrega lista de amigos do perfil com status de presença real
         if (profile?.Friends != null)
             foreach (var f in profile.Friends)
-                AddFriendToList(f);
+            {
+                var friendProfile = await _chatService.GetUserProfileAsync(f);
+                AddFriendToList(f, friendProfile?.IsOnline ?? false);
+            }
 
         // Carrega pedidos pendentes
         var pending = await _chatService.GetPendingRequestsAsync(username);
@@ -179,6 +182,7 @@ public partial class MainViewModel : ObservableObject
                 PendingRequests.Add(new FriendItem { Name = p, Nickname = p, Status = "Online", Initials = p[0].ToString().ToUpper(), AvatarColor = AvatarColor(p) });
 
         IsLoggedIn = true;
+        SetupVoiceEvents(); // inicializa eventos de chamada de voz
         OpenDmPanel();
     }
 
@@ -249,6 +253,7 @@ public partial class MainViewModel : ObservableObject
         _activeChannel = c; _activeDmFriend = null;
         CurrentChatName = c.Name; CurrentChatSubtitle = c.Topic ?? "Canal de texto";
         IsChatOpen = true; ChatMessages.Clear();
+        OnPropertyChanged(nameof(IsDmChatActive)); // FIX: esconde botão de chamada em canais
         if (_chatService.IsConnected && _selectedServer != null)
             await _chatService.JoinChannelAsync(_selectedServer.Name, c.Name);
     }
@@ -305,6 +310,7 @@ public partial class MainViewModel : ObservableObject
         CurrentChatSubtitle = f.IsOnline ? "Online" : "Offline";
         IsChatOpen = true; ChatMessages.Clear(); IsAddFriendOpen = false;
         OnPropertyChanged(nameof(WindowTitle));
+        OnPropertyChanged(nameof(IsDmChatActive)); // FIX: atualiza visibilidade do botão de chamada
         var history = await _chatService.GetChatHistoryAsync(f.Name);
         Dispatcher.UIThread.Post(() => { foreach (var m in history) ChatMessages.Add(m); });
     }
@@ -332,17 +338,136 @@ public partial class MainViewModel : ObservableObject
             _chatService.SimulateMessageReceived(msg);
     }
 
+
+    // CHAMADAS DE VOZ
+    [RelayCommand]
+    public async Task ToggleVoiceCall()
+    {
+        var voice = _chatService.Voice;
+        if (voice == null) { CallStatus = "Conecte-se primeiro"; return; }
+        if (_activeDmFriend == null) { CallStatus = "Selecione um amigo para ligar"; return; }
+
+        if (IsInCall)
+        {
+            await voice.HangUpAsync();
+            IsInCall = false;
+            CallStatus = "";
+        }
+        else
+        {
+            CallStatus = $"Chamando {_activeDmFriend.Nickname}...";
+            await voice.CallAsync(_activeDmFriend.Name);
+        }
+    }
+
+    [RelayCommand]
+    public async Task AcceptIncomingCall()
+    {
+        var voice = _chatService.Voice;
+        if (voice == null) return;
+        await voice.AcceptCallAsync();
+        IsInCall = true;
+        IncomingCallVisible = false;
+        CallStatus = $"Em chamada com {voice.CurrentPeer}";
+    }
+
+    [RelayCommand]
+    public async Task DeclineIncomingCall()
+    {
+        var voice = _chatService.Voice;
+        if (voice == null) return;
+        await voice.DeclineCallAsync();
+        IncomingCallVisible = false;
+        CallStatus = "";
+    }
+
+    private void SetupVoiceEvents()
+    {
+        var voice = _chatService.Voice;
+        if (voice == null) return;
+
+        voice.IncomingCall += caller => Dispatcher.UIThread.Post(() =>
+        {
+            IncomingCallerName = caller;
+            IncomingCallVisible = true;
+            SoundService.Play("ptton");
+        });
+
+        voice.CallAccepted += peer => Dispatcher.UIThread.Post(() =>
+        {
+            IsInCall = true;
+            CallStatus = $"Em chamada com {peer}";
+        });
+
+        voice.CallDeclined += peer => Dispatcher.UIThread.Post(() =>
+        {
+            IsInCall = false;
+            CallStatus = $"{peer} recusou a chamada";
+        });
+
+        voice.CallEnded += peer => Dispatcher.UIThread.Post(() =>
+        {
+            IsInCall = false;
+            CallStatus = "";
+        });
+
+        // FIX: propaga erros de chamada para a UI em vez de sumir no vazio
+        voice.CallError += error => Dispatcher.UIThread.Post(() =>
+        {
+            IsInCall = false;
+            CallStatus = $"Erro na chamada: {error}";
+        });
+    }
+
     // AUDIO
-    [RelayCommand] public void ToggleMute()   { IsMuted = !IsMuted; SoundService.Play(IsMuted ? "pttoff" : "ptton"); }
+    [RelayCommand] public void ToggleMute()   { IsMuted = !IsMuted; _chatService.Voice?.SetMuted(IsMuted); SoundService.Play(IsMuted ? "pttoff" : "ptton"); }
     [RelayCommand] public void ToggleDeafen() { IsDeafened = !IsDeafened; IsMuted = IsDeafened; SoundService.Play(IsDeafened ? "deafen" : "undeafen"); }
     [RelayCommand] public void OpenSettings() { }
 
+
+    // ── CHAMADAS DE VOZ ───────────────────────────────────────────────────
+    private bool _isInCall = false;
+    public bool IsInCall { get => _isInCall; set { SetProperty(ref _isInCall, value); OnPropertyChanged(nameof(CallButtonText)); } }
+
+    private string _callStatus = "";
+    public string CallStatus
+    {
+        get => _callStatus;
+        set
+        {
+            if (SetProperty(ref _callStatus, value))
+                OnPropertyChanged(nameof(HasCallStatus));
+        }
+    }
+
+    // FIX: mostra o status "Chamando..." e erros ANTES da chamada conectar
+    public bool HasCallStatus => !string.IsNullOrWhiteSpace(CallStatus);
+
+    // FIX: botão de chamada só aparece em DMs, não em canais de servidor
+    public bool IsDmChatActive => _activeDmFriend != null;
+
+    private bool _incomingCallVisible = false;
+    public bool IncomingCallVisible { get => _incomingCallVisible; set => SetProperty(ref _incomingCallVisible, value); }
+
+    private string _incomingCallerName = "";
+    public string IncomingCallerName { get => _incomingCallerName; set => SetProperty(ref _incomingCallerName, value); }
+
+    public string CallButtonText => IsInCall ? "Desligar" : "Ligar";
+
     // HELPERS
-    private void AddFriendToList(string name)
+    // FIX: aceita o estado real de presença em vez de sempre criar como Offline
+    private void AddFriendToList(string name, bool isOnline = false)
     {
         if (string.IsNullOrWhiteSpace(name)) return;
         if (Friends.Any(f => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) return;
-        Friends.Add(new FriendItem { Name = name, Nickname = name, Status = "Offline", Initials = name[0].ToString().ToUpper(), AvatarColor = AvatarColor(name) });
+        Friends.Add(new FriendItem
+        {
+            Name = name,
+            Nickname = name,
+            Status = isOnline ? "Online" : "Offline",
+            Initials = name[0].ToString().ToUpper(),
+            AvatarColor = AvatarColor(name)
+        });
     }
 
     private void StartCloseTimer()

@@ -40,6 +40,11 @@ public class ChatService
     public event Action<string>? FriendAccepted;
     public event Action<string>? ConnectionFailed;
 
+    // ── Chamadas de Voz ───────────────────────────────────────────────────
+    private VoiceCallService? _voiceCallService;
+    /// <summary>Disponível após ConnectAsync. Gerencia chamadas de voz.</summary>
+    public VoiceCallService? Voice => _voiceCallService;
+
     public bool IsConnected => _connection?.State == HubConnectionState.Connected;
 
     public async Task ConnectAsync(string username)
@@ -90,7 +95,11 @@ public class ChatService
         _connection.On<string>("FriendAccepted", friend =>
             FriendAccepted?.Invoke(friend));
 
-        try { await _connection.StartAsync(); }
+        try
+        {
+            await _connection.StartAsync();
+            _voiceCallService = new VoiceCallService(new LoggingService(), _connection);
+        }
         catch (Exception ex)
         {
             Console.WriteLine($"[ChatService] Conexao falhou: {ex.Message}");
@@ -230,4 +239,6 @@ public class UserProfileDto
     public string   AvatarColor { get; set; } = "#5865F2";
     public string   Initials    { get; set; } = "?";
     public string[] Friends     { get; set; } = Array.Empty<string>();
+    // FIX: campo de presença — hidrata o status dos amigos no login
+    public bool     IsOnline    { get; set; }
 }
