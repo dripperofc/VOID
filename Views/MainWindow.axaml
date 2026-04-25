@@ -290,7 +290,6 @@
                                                                        FontSize="13" HorizontalAlignment="Center"
                                                                        VerticalAlignment="Center"/>
                                                         </Border>
-                                                        <!-- Indicador online — FIX: usa StatusColor do modelo em vez de verde fixo -->
                                                         <Border Width="11" Height="11" CornerRadius="6"
                                                                 Background="{StaticResource BgTertiaryBrush}"
                                                                 HorizontalAlignment="Right" VerticalAlignment="Bottom"
@@ -422,7 +421,7 @@
                                        FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
                                        VerticalAlignment="Center"/>
 
-                            <!-- Botão de chamada de voz (só em DMs) — FIX: IsDmChatActive em vez de IsChatOpen -->
+                            <!-- Botão de chamada de voz (só em DMs) -->
                             <Button IsVisible="{Binding IsDmChatActive}"
                                     Command="{Binding ToggleVoiceCallCommand}"
                                     Classes="CallBtn"
@@ -436,7 +435,7 @@
                                 </StackPanel>
                             </Button>
 
-                            <!-- Status da chamada ativa — FIX: HasCallStatus mostra "Chamando...", erros, etc. -->
+                            <!-- Status da chamada ativa -->
                             <Border IsVisible="{Binding HasCallStatus}"
                                     Background="#00C9A720"
                                     BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
@@ -493,6 +492,102 @@
                             </StackPanel>
                         </Border>
                     </Grid>
+                </Border>
+                <!-- ↑ FIX: Border Grid.Row="0" (header) fechado aqui, ANTES do settings overlay -->
+
+                <!-- ══════════ PAINEL DE CONFIGURAÇÕES (overlay) ══════════ -->
+                <Border Grid.Row="0" Grid.RowSpan="3"
+                        IsVisible="{Binding IsSettingsOpen}"
+                        Background="{StaticResource BgCardBrush}"
+                        CornerRadius="10"
+                        BorderBrush="{StaticResource BorderAccentBrush}"
+                        BorderThickness="1"
+                        Padding="20" Margin="12"
+                        ZIndex="20"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Width="320">
+                    <StackPanel Spacing="16">
+                        <!-- Cabeçalho -->
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="Configurações da Conta"
+                                       FontSize="15" FontWeight="Bold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" Classes="IconBtn"
+                                    Command="{Binding CloseSettingsCommand}"
+                                    Foreground="{StaticResource TextSecondaryBrush}"
+                                    ToolTip.Tip="Fechar">
+                                <TextBlock Text="✕" FontSize="14"/>
+                            </Button>
+                        </Grid>
+
+                        <!-- Preview do avatar -->
+                        <StackPanel HorizontalAlignment="Center" Spacing="8">
+                            <Border Width="56" Height="56" CornerRadius="28"
+                                    Background="{Binding SettingsAvatarColor}"
+                                    HorizontalAlignment="Center">
+                                <TextBlock Text="{Binding CurrentUser.Initials}"
+                                           Foreground="White" FontWeight="Bold" FontSize="20"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="{Binding CurrentUser.Username, StringFormat='@{0}'}"
+                                       FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+
+                        <!-- Nickname -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="NICKNAME" FontSize="11" FontWeight="Bold"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       LetterSpacing="1"/>
+                            <TextBox Text="{Binding SettingsNickname}"
+                                     Watermark="Seu nickname..."
+                                     MaxLength="32"/>
+                        </StackPanel>
+
+                        <!-- Cor do avatar -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="COR DO AVATAR" FontSize="11" FontWeight="Bold"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       LetterSpacing="1"/>
+                            <ItemsControl ItemsSource="{Binding AvatarColorOptions}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Command="{Binding DataContext.SelectAvatarColorCommand, ElementName=RootWindow}"
+                                                CommandParameter="{Binding}"
+                                                Width="28" Height="28" Margin="3"
+                                                CornerRadius="14"
+                                                Background="{Binding}"
+                                                BorderThickness="0"
+                                                Padding="0"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- Feedback de save -->
+                        <TextBlock Text="{Binding SettingsSaveStatus}"
+                                   IsVisible="{Binding SettingsSaveStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                   FontSize="12" HorizontalAlignment="Center"
+                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+
+                        <!-- Botão salvar -->
+                        <Button Command="{Binding SaveSettingsCommand}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                Background="{StaticResource AccentBrush}"
+                                Foreground="White"
+                                FontWeight="SemiBold"
+                                CornerRadius="8"
+                                Padding="0,10"
+                                Content="Salvar Alterações"/>
+                    </StackPanel>
                 </Border>
 
                 <!-- Área de mensagens -->

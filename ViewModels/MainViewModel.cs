@@ -116,11 +116,16 @@ public partial class MainViewModel : ObservableObject
             StartCloseTimer();
         });
 
-        _chatService.FriendAccepted += friend => Dispatcher.UIThread.Post(() =>
+        // FIX: busca presença real do amigo recém-aceito em vez de entrar sempre como Offline
+        _chatService.FriendAccepted += async friend =>
         {
-            AddFriendToList(friend);
-            SoundService.Play("join");
-        });
+            var profile = await _chatService.GetUserProfileAsync(friend);
+            Dispatcher.UIThread.Post(() =>
+            {
+                AddFriendToList(friend, profile?.IsOnline ?? false);
+                SoundService.Play("join");
+            });
+        };
 
         _chatService.ConnectionFailed += err => Dispatcher.UIThread.Post(() =>
             LoginError = $"Servidor offline: {err}");
@@ -183,6 +188,24 @@ public partial class MainViewModel : ObservableObject
 
         IsLoggedIn = true;
         SetupVoiceEvents(); // inicializa eventos de chamada de voz
+
+        // Escuta o snapshot de presença que o servidor envia após NotifyOnline.
+        // Atualiza de uma vez todos os amigos que já estão online,
+        // sem precisar de N chamadas GetUserProfile.
+        _chatService.FriendsPresenceReceived += onlineList => Dispatcher.UIThread.Post(() =>
+        {
+            foreach (var name in onlineList)
+            {
+                var f = Friends.FirstOrDefault(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+                if (f != null) f.Status = "Online";
+            }
+        });
+
+        // Avisa o servidor que este usuário está online agora.
+        // O servidor propaga UserStatusChanged para os amigos dele que já estão logados,
+        // e envia FriendsPresenceSnapshot de volta com quem já está online.
+        await _chatService.NotifyOnlineAsync(username);
+
         OpenDmPanel();
     }
 
@@ -190,6 +213,8 @@ public partial class MainViewModel : ObservableObject
     public async Task Logout()
     {
         _timer?.Stop();
+        // Avisa os amigos que saiu antes de desconectar
+        await _chatService.NotifyOfflineAsync(CurrentUser.Username);
         await _chatService.DisconnectAsync();
         IsLoggedIn = false; IsChatOpen = false; DmTab = "conversations";
         ChatMessages.Clear(); Friends.Clear(); PendingRequests.Clear();
@@ -281,7 +306,9 @@ public partial class MainViewModel : ObservableObject
     {
         if (f == null) return;
         PendingRequests.Remove(f);
-        AddFriendToList(f.Name);
+        // FIX: busca presença real — quem mandou o pedido provavelmente está online
+        var profile = await _chatService.GetUserProfileAsync(f.Name);
+        AddFriendToList(f.Name, profile?.IsOnline ?? false);
         await _chatService.AcceptFriendRequestAsync(f.Name);
     }
 
@@ -422,7 +449,57 @@ public partial class MainViewModel : ObservableObject
     // AUDIO
     [RelayCommand] public void ToggleMute()   { IsMuted = !IsMuted; _chatService.Voice?.SetMuted(IsMuted); SoundService.Play(IsMuted ? "pttoff" : "ptton"); }
     [RelayCommand] public void ToggleDeafen() { IsDeafened = !IsDeafened; IsMuted = IsDeafened; SoundService.Play(IsDeafened ? "deafen" : "undeafen"); }
-    [RelayCommand] public void OpenSettings() { }
+    // ── CONFIGURAÇÕES DE CONTA ────────────────────────────────────────────
+    [ObservableProperty] private bool _isSettingsOpen = false;
+    [ObservableProperty] private string _settingsNickname = "";
+    [ObservableProperty] private string _settingsAvatarColor = "#5865F2";
+    [ObservableProperty] private string _settingsSaveStatus = "";
+    private DispatcherTimer? _saveStatusTimer;
+
+    // Paleta de cores do avatar para o usuário escolher
+    public string[] AvatarColorOptions { get; } = new[]
+    {
+        "#5865F2", "#57F287", "#FEE75C", "#EB459E",
+        "#ED4245", "#00C9A7", "#8B5CF6", "#FF7043"
+    };
+
+    [RelayCommand]
+    public void OpenSettings()
+    {
+        SettingsNickname = CurrentUser.Nickname;
+        SettingsAvatarColor = CurrentUser.AvatarColor;
+        SettingsSaveStatus = "";
+        IsSettingsOpen = true;
+    }
+
+    [RelayCommand]
+    public void CloseSettings() => IsSettingsOpen = false;
+
+    [RelayCommand]
+    public void SelectAvatarColor(string color) => SettingsAvatarColor = color;
+
+    [RelayCommand]
+    public async Task SaveSettings()
+    {
+        var nick = SettingsNickname.Trim();
+        if (string.IsNullOrWhiteSpace(nick)) { SettingsSaveStatus = "❌ Nickname não pode ser vazio."; return; }
+        if (nick.Length < 2) { SettingsSaveStatus = "❌ Mínimo 2 caracteres."; return; }
+
+        CurrentUser.Nickname = nick;
+        CurrentUser.AvatarColor = SettingsAvatarColor;
+        CurrentUser.Initials = nick.Length >= 2 ? nick[..2].ToUpper() : nick.ToUpper();
+        OnPropertyChanged(nameof(CurrentUser));
+
+        // Salva no servidor via SignalR se conectado
+        if (_chatService.IsConnected)
+            await _chatService.UpdateProfileAsync(CurrentUser.Username, nick, SettingsAvatarColor);
+
+        SettingsSaveStatus = "✅ Salvo!";
+        _saveStatusTimer?.Stop();
+        _saveStatusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        _saveStatusTimer.Tick += (_, _) => { _saveStatusTimer!.Stop(); SettingsSaveStatus = ""; IsSettingsOpen = false; };
+        _saveStatusTimer.Start();
+    }
 
 
     // ── CHAMADAS DE VOZ ───────────────────────────────────────────────────

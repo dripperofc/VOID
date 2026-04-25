@@ -39,6 +39,11 @@ public class ChatService
     public event Action<string>? FriendRequestSent;
     public event Action<string>? FriendAccepted;
     public event Action<string>? ConnectionFailed;
+    /// <summary>
+    /// Disparado quando o servidor envia o snapshot de quais amigos estão online.
+    /// Recebido logo após NotifyOnline — atualiza toda a lista de uma vez.
+    /// </summary>
+    public event Action<List<string>>? FriendsPresenceReceived;
 
     // ── Chamadas de Voz ───────────────────────────────────────────────────
     private VoiceCallService? _voiceCallService;
@@ -94,6 +99,10 @@ public class ChatService
 
         _connection.On<string>("FriendAccepted", friend =>
             FriendAccepted?.Invoke(friend));
+
+        // Snapshot de presença: servidor envia lista de amigos online após NotifyOnline
+        _connection.On<List<string>>("FriendsPresenceSnapshot", onlineList =>
+            FriendsPresenceReceived?.Invoke(onlineList));
 
         try
         {
@@ -188,7 +197,33 @@ public class ChatService
                 message.Author?.Nickname ?? "?", message.Content, "#FFF", "", serverId, channelId);
     }
 
+    public async Task UpdateProfileAsync(string username, string nickname, string avatarColor)
+    {
+        if (!IsConnected || _connection == null) return;
+        try { await _connection.InvokeAsync("UpdateProfile", username, nickname, avatarColor); }
+        catch { /* silencia — o perfil já foi atualizado localmente */ }
+    }
+
+    /// <summary>
+    /// Notifica o servidor que este usuário está online.
+    /// O servidor propaga UserStatusChanged para todos os amigos dele.
+    /// Chamar logo após o login garante status correto para quem já estava logado.
+    /// </summary>
+    public async Task NotifyOnlineAsync(string username)
+    {
+        if (!IsConnected || _connection == null) return;
+        try { await _connection.InvokeAsync("NotifyOnline", username); }
+        catch { /* se o Hub ainda não tem o método, ignora */ }
+    }
+
     public void SimulateMessageReceived(MessageItem msg) => MessageReceived?.Invoke(msg);
+
+    public async Task NotifyOfflineAsync(string username)
+    {
+        if (!IsConnected || _connection == null) return;
+        try { await _connection.InvokeAsync("NotifyOffline", username); }
+        catch { }
+    }
 
     public async Task DisconnectAsync()
     {
