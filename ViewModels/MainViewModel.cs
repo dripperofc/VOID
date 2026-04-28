@@ -141,7 +141,11 @@ public partial class MainViewModel : ObservableObject
         IsLoading = true; LoginError = "";
         var result = await _chatService.AuthenticateAsync(UsernameInput.Trim().ToLower(), PasswordInput, false);
         IsLoading = false;
-        if (result == "ok") await EnterApp(UsernameInput.Trim().ToLower());
+        if (result == "ok" || (!string.IsNullOrEmpty(result) && !result.StartsWith("error") && !result.Contains("invalid") && !result.Contains("exists") && result.Length > 20))
+        {
+            var token = result == "ok" ? null : result;
+            await EnterApp(UsernameInput.Trim().ToLower(), token);
+        }
         else if (result == "invalid_credentials") LoginError = "Usuario ou senha incorretos.";
         else LoginError = "Servidor offline ou erro desconhecido.";
     }
@@ -152,14 +156,22 @@ public partial class MainViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(UsernameInput) || string.IsNullOrWhiteSpace(PasswordInput)) { LoginError = "Preencha usuario e senha."; return; }
         if (PasswordInput.Length < 4) { LoginError = "Senha: minimo 4 caracteres."; return; }
         IsLoading = true; LoginError = "";
-        var result = await _chatService.AuthenticateAsync(UsernameInput.Trim().ToLower(), PasswordInput, true);
+        var nickname = NicknameInput.Trim().ToLower();
+        if (string.IsNullOrWhiteSpace(nickname)) nickname = UsernameInput.Trim().ToLower();
+        var result = await _chatService.AuthenticateAsync(UsernameInput.Trim().ToLower(), PasswordInput, true, nickname);
         IsLoading = false;
-        if (result == "ok") await EnterApp(UsernameInput.Trim().ToLower());
+        if (result == "ok" || (!string.IsNullOrEmpty(result) && !result.StartsWith("error") && !result.Contains("invalid") && !result.Contains("exists") && result.Length > 20))
+        {
+            var token = result == "ok" ? null : result;
+            await EnterApp(UsernameInput.Trim().ToLower(), token);
+        }
         else if (result == "user_exists") LoginError = "Usuario ja existe.";
+        else if (result == "invalid_username_length") LoginError = "Usuario: 3-32 caracteres.";
+        else if (result == "invalid_password_length") LoginError = "Senha: 4-128 caracteres.";
         else LoginError = "Servidor offline. Nao e possivel criar conta.";
     }
 
-    private async Task EnterApp(string username)
+    private async Task EnterApp(string username, string? token)
     {
         // Busca perfil completo do servidor
         var profile = await _chatService.GetUserProfileAsync(username);

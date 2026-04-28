@@ -9,27 +9,13 @@ using Void.Models;
 
 namespace Void.Services;
 
-// Handler que injeta o header ngrok em TODAS as requisições HTTP (negotiate + WebSocket upgrade)
-internal class NgrokHeaderHandler : DelegatingHandler
-{
-    public NgrokHeaderHandler(HttpMessageHandler inner) : base(inner) { }
-
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
-    {
-        request.Headers.TryAddWithoutValidation("ngrok-skip-browser-warning", "true");
-        return base.SendAsync(request, ct);
-    }
-}
-
 public class ChatService
 {
-    // ============================================================
-    // TODA VEZ QUE REINICIAR O NGROK, COLE O LINK NOVO AQUI:
-    // Exemplo: "https://a1b2-c3d4.ngrok-free.app"
-    private const string ServerUrl = "https://unretrogressively-standardizable-dung.ngrok-free.dev";
-    // ============================================================
+    private const string ServerUrl = "https://void-server-qz9e.onrender.com";
 
     private HubConnection? _connection;
+    private string? _currentUsername;
+    private string? _jwtToken;
 
     public event Action<MessageItem>? MessageReceived;
     public event Action<MessageItem>? PrivateMessageReceived;
@@ -52,7 +38,7 @@ public class ChatService
 
     public bool IsConnected => _connection?.State == HubConnectionState.Connected;
 
-    public async Task ConnectAsync(string username)
+    public async Task ConnectAsync(string username, string? token = null)
     {
         if (_connection != null)
         {
@@ -60,18 +46,21 @@ public class ChatService
             _connection = null;
         }
 
-        _connection = new HubConnectionBuilder()
-            .WithUrl($"{ServerUrl}/voidchat?username={username}", options =>
-            {
-                // Header no options (cobre parte da negociação)
-                options.Headers["ngrok-skip-browser-warning"] = "true";
+        _jwtToken = token;
+        var query = string.IsNullOrEmpty(token) ? $"?username={username}" : $"?username={username}&token={token}";
 
-                // Handler HTTP garante o header em TODAS as requisições (negotiate + polling)
-                options.HttpMessageHandlerFactory = inner =>
-                    new NgrokHeaderHandler(inner);
+        _connection = new HubConnectionBuilder()
+            .WithUrl($"{ServerUrl}/voidchat{query}", opts =>
+            {
+                opts.HttpMessageHandlerFactory = _ => new HttpClientHandler();
+                opts.Headers["X-Client"] = "VoidDesktop";
             })
-            .WithAutomaticReconnect()
+            .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
             .Build();
+
+        // Timeout generoso para o Render acordar do sleep (60s)
+        _connection.ServerTimeout  = TimeSpan.FromSeconds(90);
+        _connection.KeepAliveInterval = TimeSpan.FromSeconds(20);
 
         _connection.On<object>("ReceiveMessage", raw =>
         {
@@ -112,17 +101,28 @@ public class ChatService
         catch (Exception ex)
         {
             Console.WriteLine($"[ChatService] Conexao falhou: {ex.Message}");
-            ConnectionFailed?.Invoke(ex.Message);
+            // Mensagem amigável — o Render free tier demora até 60s pra acordar
+            var msg = ex.Message.Contains("refused") || ex.Message.Contains("connect")
+                ? "Servidor acordando, aguarde alguns segundos e tente novamente."
+                : ex.Message;
+            ConnectionFailed?.Invoke(msg);
         }
     }
 
-    public async Task<string> AuthenticateAsync(string username, string password, bool isRegister)
+    public async Task<string> AuthenticateAsync(string username, string password, bool isRegister, string nickname = "")
     {
-        if (!IsConnected) await ConnectAsync(username);
+        if (!IsConnected) await ConnectAsync(username, _jwtToken);
         if (_connection == null) return "error";
         try
         {
-            return await _connection.InvokeAsync<string>("AuthenticateUser", username, password, isRegister);
+            var result = await _connection.InvokeAsync<string>("AuthenticateUser", username, password, isRegister, nickname);
+            if (result != null && !result.StartsWith("error") && !result.Contains("invalid") && !result.Contains("exists") && !result.Contains("username") && !result.Contains("password"))
+            {
+                _jwtToken = result;
+                _currentUsername = username;
+                await ConnectAsync(username, result);
+            }
+            return result;
         }
         catch (Exception ex) { Console.WriteLine($"ERRO: {ex.Message}"); return "error"; }
     }
