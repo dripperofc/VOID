@@ -38,6 +38,7 @@ class Program
 
     static void LogCrash(string tipo, string detalhe)
     {
+#if DEBUG
         try
         {
             var logPath = "void_crash.log";
@@ -46,6 +47,7 @@ class Program
             Console.WriteLine($"\n💥 CRASH [{tipo}]:\n{detalhe}");
         }
         catch { }
+#endif
     }
 
     public static AppBuilder BuildAvaloniaApp()

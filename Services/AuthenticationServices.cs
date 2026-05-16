@@ -69,8 +69,7 @@ public class AuthenticationService
                 CreatedAt = DateTime.Now,
                 LastLogin = DateTime.Now,
                 AvatarColor = "#5865F2",
-                Initials  = username.Length >= 2 ? username[..2].ToUpper() : username.ToUpper(),
-                IsOwner   = username.ToLower() is "admin" or "dono"
+                Initials  = username.Length >= 2 ? username[..2].ToUpper() : username.ToUpper()
             };
 
             var stored = new StoredAccount
