@@ -32,6 +32,21 @@ public class FriendItem : INotifyPropertyChanged
 
     public bool IsOnline => Status == "Online";
 
+    // Unread count
+    private int _unreadCount;
+    public int UnreadCount
+    {
+        get => _unreadCount;
+        set
+        {
+            if (_unreadCount == value) return;
+            _unreadCount = value;
+            Notify(nameof(UnreadCount));
+            Notify(nameof(HasUnread));
+        }
+    }
+    public bool HasUnread => UnreadCount > 0;
+
     // Cor da bolinha de status
     public string StatusColor => Status switch
     {

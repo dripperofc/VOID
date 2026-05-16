@@ -8,6 +8,14 @@ using Avalonia.Threading;
 using Void.Models;
 using Void.Services;
 
+public class ToastInfo
+{
+    public string Text { get; set; } = "";
+    public string Type { get; set; } = "info";
+    public string Color => Type switch { "err" => "#F04747", "ok" => "#43B581", _ => "#00C9A7" };
+    public string BgColor => Type switch { "err" => "#F0474714", "ok" => "#43B58114", _ => "#00C9A714" };
+}
+
 namespace Void.ViewModels;
 
 public partial class MainViewModel : ObservableObject
@@ -64,6 +72,17 @@ public partial class MainViewModel : ObservableObject
     private ServerItem? _selectedServer;
     private DispatcherTimer? _timer;
 
+    // Toast system
+    public ObservableCollection<ToastInfo> Toasts { get; } = new();
+
+    // Call timer
+    [ObservableProperty] private string _callDuration = "00:00";
+    private DispatcherTimer? _callTimer;
+    private DateTime _callStartTime;
+
+    // Unread tracking
+    private string? _lastActiveFriend;
+
     public ObservableCollection<MessageItem> ChatMessages    { get; } = new();
     public ObservableCollection<FriendItem>  Friends         { get; } = new();
     public ObservableCollection<FriendItem>  PendingRequests { get; } = new();
@@ -86,10 +105,18 @@ public partial class MainViewModel : ObservableObject
         _chatService.PrivateMessageReceived += msg => Dispatcher.UIThread.Post(() =>
         {
             if (msg == null) return;
-            // ignora echo das proprias mensagens
             if (msg.Author?.Nickname == CurrentUser.Nickname || msg.Author?.Username == CurrentUser.Username) return;
-            if (_activeDmFriend == null) return;
-            ChatMessages.Add(msg);
+            var fromName = msg.Author?.Username ?? msg.Author?.Nickname ?? "";
+            var isActive = _activeDmFriend != null && _activeDmFriend.Name.Equals(fromName, StringComparison.OrdinalIgnoreCase);
+            if (isActive)
+            {
+                ChatMessages.Add(msg);
+            }
+            else
+            {
+                var friend = Friends.FirstOrDefault(f => f.Name.Equals(fromName, StringComparison.OrdinalIgnoreCase));
+                if (friend != null) friend.UnreadCount++;
+            }
             SoundService.Play("message");
         });
 
@@ -132,6 +159,22 @@ public partial class MainViewModel : ObservableObject
 
         _chatService.ConnectionFailed += err => Dispatcher.UIThread.Post(() =>
             LoginError = $"Servidor offline: {err}");
+
+        _chatService.BroadcastReceived += msg => Dispatcher.UIThread.Post(() =>
+            ShowToast($"📢 {msg}", "ok"));
+
+        _chatService.Kicked += () => Dispatcher.UIThread.Post(async () =>
+        {
+            ShowToast("Desconectado pelo admin.", "err");
+            await Task.Delay(2000);
+            await Logout();
+        });
+
+        _chatService.Reconnecting += () => Dispatcher.UIThread.Post(() =>
+            ShowToast("Reconectando...", "info"));
+
+        _chatService.Reconnected += () => Dispatcher.UIThread.Post(() =>
+            ShowToast("Reconectado.", "ok"));
     }
 
     // SESSAO
@@ -246,6 +289,10 @@ public partial class MainViewModel : ObservableObject
     public async Task Logout()
     {
         _timer?.Stop();
+        StopCallTimer();
+        Toasts.Clear();
+        _activeDmFriend = null;
+        _lastActiveFriend = null;
         // Avisa os amigos que saiu antes de desconectar
         await _chatService.NotifyOfflineAsync(CurrentUser.Username);
         await _chatService.DisconnectAsync();
@@ -398,8 +445,10 @@ public partial class MainViewModel : ObservableObject
         CurrentChatName = f.Nickname.Length > 0 ? f.Nickname : f.Name;
         CurrentChatSubtitle = f.IsOnline ? "Online" : "Offline";
         IsChatOpen = true; ChatMessages.Clear(); IsAddFriendOpen = false;
+        f.UnreadCount = 0;
+        _lastActiveFriend = f.Name;
         OnPropertyChanged(nameof(WindowTitle));
-        OnPropertyChanged(nameof(IsDmChatActive)); // FIX: atualiza visibilidade do botão de chamada
+        OnPropertyChanged(nameof(IsDmChatActive));
         var history = await _chatService.GetChatHistoryAsync(f.Name);
         Dispatcher.UIThread.Post(() => { foreach (var m in history) ChatMessages.Add(m); });
     }
@@ -486,26 +535,65 @@ public partial class MainViewModel : ObservableObject
         {
             IsInCall = true;
             CallStatus = $"Em chamada com {peer}";
+            StartCallTimer();
         });
 
         voice.CallDeclined += peer => Dispatcher.UIThread.Post(() =>
         {
             IsInCall = false;
             CallStatus = $"{peer} recusou a chamada";
+            StopCallTimer();
         });
 
         voice.CallEnded += peer => Dispatcher.UIThread.Post(() =>
         {
             IsInCall = false;
             CallStatus = "";
+            StopCallTimer();
         });
 
-        // FIX: propaga erros de chamada para a UI em vez de sumir no vazio
         voice.CallError += error => Dispatcher.UIThread.Post(() =>
         {
             IsInCall = false;
             CallStatus = $"Erro na chamada: {error}";
+            StopCallTimer();
         });
+    }
+
+    // ── TOAST ──────────────────────────────────────────────────────
+    private int _toastId;
+    public void ShowToast(string text, string type = "info")
+    {
+        var id = ++_toastId;
+        Toasts.Add(new ToastInfo { Text = text, Type = type });
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            Toasts.RemoveAt(0);
+        };
+        timer.Start();
+    }
+
+    // ── CALL TIMER ─────────────────────────────────────────────────
+    private void StartCallTimer()
+    {
+        _callStartTime = DateTime.Now;
+        _callTimer?.Stop();
+        _callTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _callTimer.Tick += (_, _) =>
+        {
+            var elapsed = DateTime.Now - _callStartTime;
+            CallDuration = $"{(int)elapsed.TotalMinutes:D2}:{elapsed.Seconds:D2}";
+        };
+        _callTimer.Start();
+    }
+
+    private void StopCallTimer()
+    {
+        _callTimer?.Stop();
+        _callTimer = null;
+        CallDuration = "00:00";
     }
 
     // AUDIO

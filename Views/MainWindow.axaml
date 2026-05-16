@@ -126,6 +126,23 @@
             </Border>
         </Grid>
 
+        <!-- Toast overlay -->
+        <Panel IsVisible="{Binding Toasts.Count}" Margin="0,8,0,0"
+               VerticalAlignment="Top" HorizontalAlignment="Center" ZIndex="50">
+            <ItemsControl ItemsSource="{Binding Toasts}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{Binding BgColor}"
+                                BorderBrush="{Binding Color}" BorderThickness="1"
+                                CornerRadius="10" Padding="16,10" Margin="0,0,0,6">
+                            <TextBlock Text="{Binding Text}" Foreground="{Binding Color}"
+                                       FontSize="13" FontWeight="SemiBold"/>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Panel>
+
         <!-- ══════════════════ APP PRINCIPAL ══════════════════ -->
         <Grid IsVisible="{Binding IsLoggedIn}" ColumnDefinitions="64,230,*">
 
@@ -331,9 +348,19 @@
                                                         </Border>
                                                     </Panel>
                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
-                                                        <TextBlock Text="{Binding Nickname}"
-                                                                   FontSize="13" FontWeight="SemiBold"
-                                                                   Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <TextBlock Text="{Binding Nickname}"
+                                                                       FontSize="13" FontWeight="SemiBold"
+                                                                       Foreground="{StaticResource TextPrimaryBrush}"/>
+                                                            <Border IsVisible="{Binding HasUnread}"
+                                                                    Background="{StaticResource AccentBrush}"
+                                                                    CornerRadius="8" Padding="5,1" MinWidth="16">
+                                                                <TextBlock Text="{Binding UnreadCount}"
+                                                                           FontSize="10" FontWeight="Bold"
+                                                                           Foreground="#080810"
+                                                                           HorizontalAlignment="Center"/>
+                                                            </Border>
+                                                        </StackPanel>
                                                         <TextBlock Text="{Binding Status}"
                                                                    FontSize="11"
                                                                    Foreground="{StaticResource TextSecondaryBrush}"/>
@@ -476,6 +503,12 @@
                                             Background="{StaticResource AccentBrush}"/>
                                     <TextBlock Text="{Binding CallStatus}"
                                                FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{StaticResource AccentBrush}"
+                                               VerticalAlignment="Center"/>
+                                    <Border Width="1" Height="12"
+                                            Background="{StaticResource BorderBrightBrush}"/>
+                                    <TextBlock Text="{Binding CallDuration}"
+                                               FontSize="11" FontWeight="Bold"
                                                Foreground="{StaticResource AccentBrush}"
                                                VerticalAlignment="Center"/>
                                 </StackPanel>

@@ -30,6 +30,10 @@ public class ChatService
     /// Recebido logo após NotifyOnline — atualiza toda a lista de uma vez.
     /// </summary>
     public event Action<List<string>>? FriendsPresenceReceived;
+    public event Action<string>? BroadcastReceived;
+    public event Action? Kicked;
+    public event Action? Reconnecting;
+    public event Action? Reconnected;
 
     // ── Chamadas de Voz ───────────────────────────────────────────────────
     private VoiceCallService? _voiceCallService;
@@ -92,6 +96,26 @@ public class ChatService
         // Snapshot de presença: servidor envia lista de amigos online após NotifyOnline
         _connection.On<List<string>>("FriendsPresenceSnapshot", onlineList =>
             FriendsPresenceReceived?.Invoke(onlineList));
+
+        // Broadcast do admin
+        _connection.On<string>("ReceiveBroadcast", msg =>
+            BroadcastReceived?.Invoke(msg));
+
+        // Expulso pelo admin
+        _connection.On("Kicked", () =>
+            Kicked?.Invoke());
+
+        // Reconexão
+        _connection.Reconnecting += _ =>
+        {
+            Reconnecting?.Invoke();
+            return Task.CompletedTask;
+        };
+        _connection.Reconnected += _ =>
+        {
+            Reconnected?.Invoke();
+            return Task.CompletedTask;
+        };
 
         try
         {
