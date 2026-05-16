@@ -230,6 +230,96 @@ public class ChatService
         if (_connection != null) { await _connection.DisposeAsync(); _connection = null; }
     }
 
+    public async Task<List<ServerItem>> GetServersAsync()
+    {
+        if (!IsConnected || _connection == null) return new();
+        try
+        {
+            var raw = await _connection.InvokeAsync<List<object>>("GetServers");
+            var result = new List<ServerItem>();
+            foreach (var r in raw)
+            {
+                var json = r is JsonElement je ? je.GetRawText() : JsonSerializer.Serialize(r);
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                var idStr = root.TryGetProperty("id", out var idEl) ? idEl.GetString() ?? "" : "";
+                var name = root.TryGetProperty("name", out var nEl) ? nEl.GetString() ?? "" : "";
+                var owner = root.TryGetProperty("owner", out var oEl) ? oEl.GetString() ?? "" : "";
+                var isOwner = root.TryGetProperty("isOwner", out var iEl) && iEl.GetBoolean();
+                var channels = new List<ChannelItem>();
+                if (root.TryGetProperty("channels", out var chEl))
+                {
+                    foreach (var c in chEl.EnumerateArray())
+                        channels.Add(new ChannelItem { Name = c.GetString() ?? "", Type = ChannelType.Text });
+                }
+                result.Add(new ServerItem
+                {
+                    Id = idStr.GetHashCode(),
+                    ServerId = idStr,
+                    Name = name,
+                    OwnerId = owner.GetHashCode(),
+                    Channels = channels,
+                    IsOwner = isOwner
+                });
+            }
+            return result;
+        }
+        catch { return new(); }
+    }
+
+    public async Task<ServerItem?> CreateServerAsync(string name)
+    {
+        if (!IsConnected || _connection == null) return null;
+        try
+        {
+            var raw = await _connection.InvokeAsync<object?>("CreateServer", name);
+            if (raw == null) return null;
+            var json = raw is JsonElement je ? je.GetRawText() : JsonSerializer.Serialize(raw);
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            var idStr = root.TryGetProperty("id", out var idEl) ? idEl.GetString() ?? "" : "";
+            var sName = root.TryGetProperty("name", out var nEl) ? nEl.GetString() ?? "" : "";
+            var owner = root.TryGetProperty("owner", out var oEl) ? oEl.GetString() ?? "" : "";
+            var channels = new List<ChannelItem>();
+            if (root.TryGetProperty("channels", out var chEl))
+            {
+                foreach (var c in chEl.EnumerateArray())
+                    channels.Add(new ChannelItem { Name = c.GetString() ?? "", Type = ChannelType.Text });
+            }
+            return new ServerItem
+            {
+                Id = idStr.GetHashCode(),
+                ServerId = idStr,
+                Name = sName,
+                OwnerId = owner.GetHashCode(),
+                Channels = channels,
+                IsOwner = true
+            };
+        }
+        catch { return null; }
+    }
+
+    public async Task<bool> JoinServerAsync(string inviteCode)
+    {
+        if (!IsConnected || _connection == null) return false;
+        try { return await _connection.InvokeAsync<bool>("JoinServer", inviteCode); }
+        catch { return false; }
+    }
+
+    public async Task<bool> JoinOfficialServerAsync()
+    {
+        if (!IsConnected || _connection == null) return false;
+        try { return await _connection.InvokeAsync<bool>("JoinOfficialServer"); }
+        catch { return false; }
+    }
+
+    public async Task<bool> LeaveServerAsync(string serverId)
+    {
+        if (!IsConnected || _connection == null) return false;
+        try { return await _connection.InvokeAsync<bool>("LeaveServer", serverId); }
+        catch { return false; }
+    }
+
     private static MessageItem? ParseMsg(object raw)
     {
         try

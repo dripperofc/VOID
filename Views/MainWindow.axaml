@@ -175,6 +175,37 @@
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Button>
 
+                            <Border Height="1" Width="32" Background="{StaticResource BorderBrush}" Margin="0,2"/>
+
+                            <!-- Entrar por convite -->
+                            <StackPanel Spacing="4" Margin="4,0,4,0" HorizontalAlignment="Stretch">
+                                <TextBox Text="{Binding InviteCode}"
+                                         Watermark="CÓDIGO"
+                                         MinHeight="30" Padding="6,4" FontSize="10"
+                                         HorizontalAlignment="Stretch"
+                                         MaxLength="8"
+                                         LetterSpacing="1.5">
+                                    <TextBox.KeyBindings>
+                                        <KeyBinding Gesture="Enter" Command="{Binding JoinByCodeCommand}"/>
+                                    </TextBox.KeyBindings>
+                                </TextBox>
+                                <Button Command="{Binding JoinByCodeCommand}"
+                                        Background="{StaticResource AccentBrush}"
+                                        Foreground="#080810"
+                                        Height="28" FontSize="10" FontWeight="Bold"
+                                        CornerRadius="6" Padding="0"
+                                        Content="Entrar"
+                                        HorizontalAlignment="Stretch"/>
+                                <TextBlock Text="{Binding InviteError}"
+                                           IsVisible="{Binding InviteError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                           Foreground="{StaticResource RedBrush}" FontSize="9"
+                                           TextWrapping="Wrap" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{Binding InviteSuccess}"
+                                           IsVisible="{Binding InviteSuccess, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                           Foreground="{StaticResource GreenBrush}" FontSize="9"
+                                           TextWrapping="Wrap" HorizontalAlignment="Center"/>
+                            </StackPanel>
+
                         </StackPanel>
                     </ScrollViewer>
                 </DockPanel>

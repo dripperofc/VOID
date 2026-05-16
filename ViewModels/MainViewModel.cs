@@ -52,6 +52,9 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _addFriendSuccess = "";
     [ObservableProperty] private string _newServerName = "";
     [ObservableProperty] private string _newServerError = "";
+    [ObservableProperty] private string _inviteCode = "";
+    [ObservableProperty] private string _inviteError = "";
+    [ObservableProperty] private string _inviteSuccess = "";
 
     // Dados
     public UserProfile CurrentUser { get; private set; } = new();
@@ -199,11 +202,9 @@ public partial class MainViewModel : ObservableObject
                 PendingRequests.Add(new FriendItem { Name = p, Nickname = p, Status = "Online", Initials = p[0].ToString().ToUpper(), AvatarColor = AvatarColor(p) });
 
         IsLoggedIn = true;
-        SetupVoiceEvents(); // inicializa eventos de chamada de voz
+        SetupVoiceEvents();
 
         // Escuta o snapshot de presença que o servidor envia após NotifyOnline.
-        // Atualiza de uma vez todos os amigos que já estão online,
-        // sem precisar de N chamadas GetUserProfile.
         _chatService.FriendsPresenceReceived += onlineList => Dispatcher.UIThread.Post(() =>
         {
             foreach (var name in onlineList)
@@ -214,11 +215,31 @@ public partial class MainViewModel : ObservableObject
         });
 
         // Avisa o servidor que este usuário está online agora.
-        // O servidor propaga UserStatusChanged para os amigos dele que já estão logados,
-        // e envia FriendsPresenceSnapshot de volta com quem já está online.
         await _chatService.NotifyOnlineAsync(username);
 
+        // Entra no servidor oficial automaticamente e carrega servidores
+        if (_chatService.IsConnected)
+        {
+            await _chatService.JoinOfficialServerAsync();
+            await LoadServers();
+        }
+
         OpenDmPanel();
+    }
+
+    private async Task LoadServers()
+    {
+        if (!_chatService.IsConnected) return;
+        var servers = await _chatService.GetServersAsync();
+        Dispatcher.UIThread.Post(() =>
+        {
+            Servers.Clear();
+            foreach (var s in servers)
+            {
+                if (!Servers.Any(x => x.ServerId == s.ServerId))
+                    Servers.Add(s);
+            }
+        });
     }
 
     [RelayCommand]
@@ -231,6 +252,7 @@ public partial class MainViewModel : ObservableObject
         IsLoggedIn = false; IsChatOpen = false; DmTab = "conversations";
         ChatMessages.Clear(); Friends.Clear(); PendingRequests.Clear();
         CurrentChannels.Clear(); Servers.Clear();
+        InviteCode = ""; InviteError = ""; InviteSuccess = "";
         UsernameInput = ""; PasswordInput = ""; NicknameInput = ""; LoginError = "";
     }
 
@@ -268,18 +290,46 @@ public partial class MainViewModel : ObservableObject
         var name = NewServerName.Trim();
         if (string.IsNullOrWhiteSpace(name)) { NewServerError = "Digite um nome."; return; }
         if (name.Length < 2) { NewServerError = "Nome muito curto."; return; }
-        if (Servers.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) { NewServerError = "Nome ja existe."; return; }
-        var server = new ServerItem
+
+        if (_chatService.IsConnected)
         {
-            Id = Servers.Count + 1, Name = name, OwnerId = CurrentUser.Id,
-            Channels = new System.Collections.Generic.List<ChannelItem>
+            var server = await _chatService.CreateServerAsync(name);
+            if (server != null)
             {
-                new ChannelItem { Id = 1, Name = "geral",     Type = ChannelType.Text, Topic = "Canal principal" },
-                new ChannelItem { Id = 2, Name = "off-topic", Type = ChannelType.Text, Topic = "Assuntos livres"  },
+                Servers.Add(server);
+                NewServerName = ""; NewServerError = ""; IsCreateServerOpen = false;
+                await SelectServer(server);
             }
-        };
-        Servers.Add(server); NewServerName = ""; NewServerError = ""; IsCreateServerOpen = false;
-        await SelectServer(server);
+            else NewServerError = "Erro ao criar servidor.";
+        }
+        else
+        {
+            var server = new ServerItem
+            {
+                Id = Servers.Count + 1, ServerId = name, Name = name, OwnerId = CurrentUser.Id,
+                Channels = new() { new ChannelItem { Name = "geral", Type = ChannelType.Text } }
+            };
+            Servers.Add(server); NewServerName = ""; NewServerError = ""; IsCreateServerOpen = false;
+            await SelectServer(server);
+        }
+    }
+
+    [RelayCommand]
+    public async Task JoinByCode()
+    {
+        var code = InviteCode.Trim().ToUpper();
+        InviteError = ""; InviteSuccess = "";
+        if (string.IsNullOrWhiteSpace(code)) { InviteError = "Digite um codigo."; return; }
+        if (!_chatService.IsConnected) { InviteError = "Servidor offline."; return; }
+
+        var ok = await _chatService.JoinServerAsync(code);
+        if (ok)
+        {
+            InviteSuccess = $"Entrou no servidor!";
+            InviteCode = "";
+            await LoadServers();
+        }
+        else InviteError = "Codigo invalido.";
     }
 
     // CANAIS
@@ -292,7 +342,7 @@ public partial class MainViewModel : ObservableObject
         IsChatOpen = true; ChatMessages.Clear();
         OnPropertyChanged(nameof(IsDmChatActive)); // FIX: esconde botão de chamada em canais
         if (_chatService.IsConnected && _selectedServer != null)
-            await _chatService.JoinChannelAsync(_selectedServer.Name, c.Name);
+            await _chatService.JoinChannelAsync(_selectedServer.ServerId, c.Name);
     }
 
     // AMIGOS
@@ -362,7 +412,7 @@ public partial class MainViewModel : ObservableObject
         var msg = new MessageItem { Content = Input, Author = CurrentUser, Timestamp = DateTime.Now };
         Input = "";
         if (_activeChannel != null && _chatService.IsConnected && _selectedServer != null)
-            await _chatService.SendMessageAsync(msg, _selectedServer.Name, _activeChannel.Name);
+            await _chatService.SendMessageAsync(msg, _selectedServer.ServerId, _activeChannel.Name);
         else if (_activeDmFriend != null)
         {
             if (_chatService.IsConnected)
