@@ -8,6 +8,8 @@ using Avalonia.Threading;
 using Void.Models;
 using Void.Services;
 
+namespace Void.ViewModels;
+
 public class ToastInfo
 {
     public string Text { get; set; } = "";
@@ -15,8 +17,6 @@ public class ToastInfo
     public string Color => Type switch { "err" => "#F04747", "ok" => "#43B581", _ => "#00C9A7" };
     public string BgColor => Type switch { "err" => "#F0474714", "ok" => "#43B58114", _ => "#00C9A714" };
 }
-
-namespace Void.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
