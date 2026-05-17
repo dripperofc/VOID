@@ -11,7 +11,7 @@ namespace Void.Services;
 
 public class ChatService
 {
-    private const string ServerUrl = "https://void-server-qz9e.onrender.com";
+    private const string ServerUrl = "https://void-server-gkjx.onrender.com";
 
     private HubConnection? _connection;
     private string? _currentUsername;
