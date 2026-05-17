@@ -483,6 +483,8 @@ $RECYCLE.BIN/
 
 bin/
 obj/
+build/
+publish/
 *.user
 *.suo
 *.pdb
