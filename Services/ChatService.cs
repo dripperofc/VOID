@@ -173,7 +173,15 @@ public class ChatService
 
     public async Task SendFriendRequestAsync(string targetUsername)
     {
-        if (IsConnected) await _connection!.InvokeAsync("SendFriendRequest", targetUsername);
+        if (!IsConnected || _connection == null) { FriendRequestFailed?.Invoke("Servidor desconectado."); return; }
+        try
+        {
+            await _connection.InvokeAsync("SendFriendRequest", targetUsername);
+        }
+        catch (Exception ex)
+        {
+            FriendRequestFailed?.Invoke($"Erro: {ex.Message}");
+        }
     }
 
     public async Task AcceptFriendRequestAsync(string requesterUsername)
