@@ -485,8 +485,12 @@ bin/
 obj/
 build/
 publish/
+release-build/
 *.user
 *.suo
 *.pdb
 last_id.txt
 Accounts/
+user_settings.json
+void_crash.log
+Void.exe

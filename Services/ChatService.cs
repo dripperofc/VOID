@@ -11,8 +11,6 @@ namespace Void.Services;
 
 public class ChatService
 {
-    private const string ServerUrl = "https://void-server-gkjx.onrender.com";
-
     private HubConnection? _connection;
     private string? _currentUsername;
     private string? _jwtToken;
@@ -54,7 +52,7 @@ public class ChatService
         var query = string.IsNullOrEmpty(token) ? $"?username={username}" : $"?username={username}&token={token}";
 
         _connection = new HubConnectionBuilder()
-            .WithUrl($"{ServerUrl}/voidchat{query}", opts =>
+            .WithUrl($"{Config.ServerUrl}/voidchat{query}", opts =>
             {
                 opts.HttpMessageHandlerFactory = _ => new HttpClientHandler();
                 opts.Headers["X-Client"] = "VoidDesktop";
@@ -343,6 +341,23 @@ public class ChatService
         if (!IsConnected || _connection == null) return false;
         try { return await _connection.InvokeAsync<bool>("JoinOfficialServer"); }
         catch { return false; }
+    }
+
+    public async Task<List<MessageItem>> GetChannelMessagesAsync(string serverId, string channelId)
+    {
+        if (!IsConnected || _connection == null) return new();
+        try
+        {
+            var rawList = await _connection.InvokeAsync<List<object>>("GetChannelMessages", serverId, channelId);
+            var result = new List<MessageItem>();
+            foreach (var raw in rawList)
+            {
+                var msg = ParseMsg(raw);
+                if (msg != null) result.Add(msg);
+            }
+            return result;
+        }
+        catch { return new(); }
     }
 
     public async Task<bool> LeaveServerAsync(string serverId)
