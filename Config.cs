@@ -5,7 +5,7 @@ namespace Void;
 
 public static class Config
 {
-    private const string DefaultServerUrl = "https://void-server-gkjx.onrender.com";
+    private const string DefaultServerUrl = "https://voidserver-production.up.railway.app";
     private const string ConfigFileName = "config.json";
 
     private static string? _serverUrl;
