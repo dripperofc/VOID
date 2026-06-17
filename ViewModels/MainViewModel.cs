@@ -51,7 +51,9 @@ public partial class MainViewModel : ObservableObject
     private static string AvatarColor(string name)
     {
         var c = new[] { "#5865F2","#57F287","#FEE75C","#EB459E","#ED4245","#00C9A7","#8B5CF6" };
-        return c[Math.Abs(name.GetHashCode()) % c.Length];
+        var hash = 17;
+        foreach (var ch in name) hash = hash * 31 + ch;
+        return c[Math.Abs(hash) % c.Length];
     }
 
     private void AddFriendToList(string name, bool isOnline = false)

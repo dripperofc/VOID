@@ -144,7 +144,7 @@ public class ChatService
                 _currentUsername = username;
                 await ConnectAsync(username, result);
             }
-            return result;
+            return result ?? "error";
         }
         catch (Exception ex) { Console.WriteLine($"ERRO: {ex.Message}"); return "error"; }
     }
